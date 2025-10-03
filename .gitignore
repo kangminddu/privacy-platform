@@ -1,0 +1,77 @@
+HELP.md
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### Spring Boot ###
+# 환경설정 (민감정보)
+src/main/resources/application.properties
+src/main/resources/application-*.properties
+
+# 로그 파일
+*.log
+
+### Secrets ###
+.env
+*.pem
+*.p12
+*.jks
+*.keystore
+*.json   # (클라우드 서비스 키, 예: GCP, Firebase, AWS creds)
+
+### Python (ai-server) ###
+ai-server/.env
+ai-server/.venv/
+ai-server/venv/
+ai-server/__pycache__/
+ai-server/.ipynb_checkpoints/
+
+# AI 데이터/모델
+ai-server/data/
+ai-server/logs/
+ai-server/outputs/
+ai-server/checkpoints/
+ai-server/models/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+*.bin
+
+### OS ###
+.DS_Store
+Thumbs.db
