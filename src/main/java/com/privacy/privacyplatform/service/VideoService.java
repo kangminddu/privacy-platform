@@ -28,18 +28,22 @@ public class VideoService {
     private final VideoRepository videoRepository;
     private final DetectionRepository detectionRepository;
     private final AiServerService aiServerService;
+    private final S3Service s3Service;
     private final Gson gson = new Gson();
 
     @Transactional
     public UploadResponse uploadAndProcess(MultipartFile file) throws Exception {
 
-        log.info("파일 업로드 시작: {}", file.getOriginalFilename());
+        // S3에 원본 업로드
+        String s3Path = s3Service.uploadFile(file, "original");
+        log.info("S3 경로: {}", s3Path);
 
         String videoId = UUID.randomUUID().toString();
         Video video = Video.builder()
                 .videoId(videoId)
                 .originalFilename(file.getOriginalFilename())
                 .fileSizeBytes(file.getSize())
+                .s3OriginalPath(s3Path)
                 .status(Video.VideoStatus.PROCESSING)
                 .build();
 
