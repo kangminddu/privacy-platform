@@ -1,67 +1,55 @@
-package com.privacy.privacyplatform.service;
+package com.privacy.privacyplatform.storage.service;
 
-import com.privacy.privacyplatform.dto.PresignedUploadUrl;
-import lombok.RequiredArgsConstructor;
+import com.privacy.privacyplatform.storage.dto.PresignedUploadUrl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.util.UUID;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class S3Service {
 
     private final S3Client s3Client;
     private final S3Presigner s3Presigner;
+    private final String bucketName;
 
-    @Value("${aws.s3.bucket-name}")
-    private String bucketName;
-
-    /**
-     * 파일 직접 업로드 (기존 방식)
-     */
-    public String uploadFile(MultipartFile file, String folder) throws IOException {
-        String fileName = folder + "/" + UUID.randomUUID() + "_" + file.getOriginalFilename();
-
-        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(bucketName)
-                .key(fileName)
-                .contentType(file.getContentType())
-                .build();
-
-        s3Client.putObject(putObjectRequest, RequestBody.fromBytes(file.getBytes()));
-
-        log.info("S3 업로드 완료: {}", fileName);
-        return fileName;
+    public S3Service(
+            S3Client s3Client,
+            S3Presigner s3Presigner,
+            @Value("${aws.s3.bucket-name}") String bucketName) {
+        this.s3Client = s3Client;
+        this.s3Presigner = s3Presigner;
+        this.bucketName = bucketName;
     }
 
     /**
-     * Pre-signed Upload URL 생성 (새로운 방식)
+     * Pre-signed Upload URL 생성 (클라이언트가 S3에 직접 업로드)
      */
-    public PresignedUploadUrl generatePresignedUploadUrl(String originalFilename, String contentType, String folder) {
-        String s3Key = folder + "/" + UUID.randomUUID() + "_" + originalFilename;
+    public PresignedUploadUrl generatePresignedUploadUrl(String filename, String contentType) {
+        // S3 키 생성: original/uuid_filename.mp4
+        String s3Key = "original/" + UUID.randomUUID() + "_" + filename;
 
+        // PutObjectRequest 생성
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(s3Key)
                 .contentType(contentType)
                 .build();
 
+        // Pre-signed URL 생성 (10분 유효)
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-                .signatureDuration(Duration.ofMinutes(10)) // 10분간 유효
+                .signatureDuration(Duration.ofMinutes(10))
                 .putObjectRequest(putObjectRequest)
                 .build();
 
@@ -70,14 +58,13 @@ public class S3Service {
         log.info("Pre-signed Upload URL 생성: {}", s3Key);
 
         return PresignedUploadUrl.builder()
-                .uploadUrl(presignedRequest.url().toString())
+                .url(presignedRequest.url().toString())
                 .s3Key(s3Key)
-                .expiresIn(600) // 10분
                 .build();
     }
 
     /**
-     * Pre-signed Download URL 생성 (기존)
+     * Pre-signed Download URL 생성 (클라이언트가 S3에서 직접 다운로드)
      */
     public String generatePresignedDownloadUrl(String s3Key) {
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()
@@ -85,6 +72,7 @@ public class S3Service {
                 .key(s3Key)
                 .build();
 
+        // Pre-signed URL 생성 (10분 유효)
         GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
                 .signatureDuration(Duration.ofMinutes(10))
                 .getObjectRequest(getObjectRequest)
@@ -92,22 +80,21 @@ public class S3Service {
 
         PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(presignRequest);
 
+        log.info("Pre-signed Download URL 생성: {}", s3Key);
+
         return presignedRequest.url().toString();
     }
 
     /**
-     * S3 파일 존재 확인
+     * S3 파일 존재 여부 확인
      */
     public boolean fileExists(String s3Key) {
         try {
-            HeadObjectRequest headObjectRequest = HeadObjectRequest.builder()
+            s3Client.headObject(builder -> builder
                     .bucket(bucketName)
-                    .key(s3Key)
-                    .build();
-
-            s3Client.headObject(headObjectRequest);
+                    .key(s3Key));
             return true;
-        } catch (NoSuchKeyException e) {
+        } catch (Exception e) {
             return false;
         }
     }
@@ -116,12 +103,13 @@ public class S3Service {
      * S3 파일 삭제
      */
     public void deleteFile(String s3Key) {
-        DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
-                .bucket(bucketName)
-                .key(s3Key)
-                .build();
-
-        s3Client.deleteObject(deleteObjectRequest);
-        log.info("S3 파일 삭제: {}", s3Key);
+        try {
+            s3Client.deleteObject(builder -> builder
+                    .bucket(bucketName)
+                    .key(s3Key));
+            log.info("S3 파일 삭제: {}", s3Key);
+        } catch (Exception e) {
+            log.error("S3 파일 삭제 실패: {}", s3Key, e);
+        }
     }
 }

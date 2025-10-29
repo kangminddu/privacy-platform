@@ -1,4 +1,4 @@
-package com.privacy.privacyplatform.dto;
+package com.privacy.privacyplatform.storage.dto;
 
 
 import lombok.AllArgsConstructor;
@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PresignedUploadUrl {
-    private String uploadUrl;  // S3 업로드 URL
+    private String url;  // S3 업로드 URL
     private String s3Key;      // S3 경로
-    private Integer expiresIn; // 유효 시간(초)
 }

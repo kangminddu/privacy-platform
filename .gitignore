@@ -40,17 +40,25 @@ out/
 # 환경설정 (민감정보)
 src/main/resources/application.properties
 src/main/resources/application-*.properties
+src/main/resources/static/**
+!src/main/resources/static/.gitkeep
 
 # 로그 파일
 *.log
+logs/
 
 ### Secrets ###
 .env
+.env.*
+!.env.example
 *.pem
 *.p12
 *.jks
 *.keystore
-*.json   # (클라우드 서비스 키, 예: GCP, Firebase, AWS creds)
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
 
 ### Python (ai-server) ###
 ai-server/.env
@@ -58,6 +66,8 @@ ai-server/.venv/
 ai-server/venv/
 ai-server/__pycache__/
 ai-server/.ipynb_checkpoints/
+ai-server/*.pyc
+ai-server/**/*.pyc
 
 # AI 데이터/모델
 ai-server/data/
@@ -65,13 +75,82 @@ ai-server/logs/
 ai-server/outputs/
 ai-server/checkpoints/
 ai-server/models/
+ai-server/temp/
+ai-server/downloads/
 *.pt
 *.pth
 *.ckpt
 *.safetensors
 *.onnx
 *.bin
+*.h5
+*.pkl
+*.pickle
+
+### Frontend (React) ###
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+frontend/coverage/
+frontend/.cache/
+
+# React 빌드 결과물
+src/main/resources/static/assets/
+src/main/resources/static/index.html
 
 ### OS ###
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
+
+### application properties ###
+application-local.properties
+application-secret.properties
+
+### AWS 자격증명 ###
+aws-credentials.json
+.aws/
+
+### 테스트 파일 ###
+test-uploads/
+test-videos/
+test-images/
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.jpg
+*.jpeg
+*.png
+*.gif
+!src/test/resources/**/*.jpg
+!src/test/resources/**/*.png
+
+### 임시 파일 ###
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.*.swp
+
+### 데이터베이스 ###
+*.db
+*.sqlite
+*.sqlite3
+
+### 문서 임시 파일 ###
+~$*
+.~lock.*
+
+### Gradle 캐시 ###
+.gradle/
+gradle-app.setting
