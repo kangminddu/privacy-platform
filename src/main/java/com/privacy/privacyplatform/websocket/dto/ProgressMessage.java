@@ -1,20 +1,21 @@
-package com.privacy.privacyplatform.dto;
-
+package com.privacy.privacyplatform.websocket.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
+import java.time.LocalDateTime;
 
-public class UploadResponse {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ProgressMessage {
     private String videoId;
-    private String filename;
-    private Long fileSizeBytes;
+    private Integer percentage;
     private String status;
     private String message;
+    private LocalDateTime timestamp;
+
 }
