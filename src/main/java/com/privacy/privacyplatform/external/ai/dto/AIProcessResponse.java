@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.redis.domain.geo.BoundingBox;
 
 import java.util.List;
 
@@ -15,32 +14,32 @@ import java.util.List;
 public class AIProcessResponse {
 
     private String videoId;
-    private String processedPath;   // S3 processed/경로
-    private Integer frameCount;     // 총 프레임 수
-    private Integer durationSeconds; // 영상 길이(초)
-    private Integer fps;           // FPS
+    private String processedPath;
+    private Integer frameCount;
+    private Integer durationSeconds;
+    private Integer fps;
     private List<DetectionResult> detections;
-    private Long processingTimeMs; // 처리 시간 (밀리초)
+    private Long processingTimeMs;
 
     /**
-     * 탐지 결과 (FastAPI -> Spring Boot)
+     * 탐지 결과 (FastAPI → Spring Boot)
      */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
     public static class DetectionResult {
-        private String objectType;
-        private Float confidence;
+        private String objectType;       // "FACE", "LICENSE_PLATE"
+        private Float confidence;        // 0.0 ~ 1.0
         private BoundingBox boundingBox;
         private Integer frameNumber;
         private Integer timestampMs;
     }
 
     /**
-     * Bouding Box
+     * Bounding Box
      */
-    @Data
+    @Data  // ← 이것도!
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
@@ -51,4 +50,3 @@ public class AIProcessResponse {
         private Integer height;
     }
 }
-
