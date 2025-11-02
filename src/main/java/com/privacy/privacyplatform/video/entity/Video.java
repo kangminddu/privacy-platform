@@ -22,39 +22,47 @@ public class Video {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false, length = 50)
+    @Column(name = "video_id", unique = true, nullable = false, length = 50)
     private String videoId;  // UUID
 
-    @Column(nullable = false)
+    @Column(name = "original_filename", nullable = false)
     private String originalFilename;
 
-    @Column(nullable = false)
+    @Column(name = "content_type", nullable = false)
     private String contentType;  // video/mp4, video/avi
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(name = "status", nullable = false, length = 20)
     private ProcessStatus status;
 
-    @Column(length = 500)
+    // ✅ DB 컬럼명과 정확히 맞춤
+    @Column(name = "s3_original_path", length = 500)
     private String s3OriginalPath;
 
-    @Column(length = 500)
+    @Column(name = "s3_processed_path", length = 500)
     private String s3ProcessedPath;
 
+    @Column(name = "file_size_bytes")
     private Long fileSizeBytes;
 
     // 동영상 메타데이터
+    @Column(name = "duration_seconds")
     private Integer durationSeconds;
+
+    @Column(name = "frame_count")
     private Integer frameCount;
+
+    @Column(name = "fps")
     private Integer fps;
 
     @OneToMany(mappedBy = "video", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Detection> detections = new ArrayList<>();
 
-    @Column(nullable = false, updatable = false)
+    @Column(name = "uploaded_at", nullable = false, updatable = false)
     private LocalDateTime uploadedAt;
 
+    @Column(name = "processed_at")
     private LocalDateTime processedAt;
 
     @PrePersist

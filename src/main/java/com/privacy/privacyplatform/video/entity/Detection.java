@@ -17,6 +17,7 @@ public class Detection {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -24,27 +25,33 @@ public class Detection {
     private Video video;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
+    @Column(name = "object_type", nullable = false, length = 30)
     private ObjectType objectType;
 
-    @Column(nullable = false)
+    @Column(name = "confidence", nullable = false)
     private Float confidence;  // 0.0 ~ 1.0
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "bounding_box", columnDefinition = "TEXT")
     private String boundingBox;  // JSON: {"x": 100, "y": 200, "width": 50, "height": 50}
 
+    @Column(name = "frame_number")
     private Integer frameNumber;
+
+    @Column(name = "timestamp_ms")
     private Integer timestampMs;
 
-    @Column(nullable = false)
+    @Column(name = "masking_applied", nullable = false)
     @Builder.Default
     private Boolean maskingApplied = false;
 
-    @Column(nullable = false, updatable = false)
+    @Column(name = "detected_at", nullable = false, updatable = false)
     private LocalDateTime detectedAt;
 
     @PrePersist
     protected void onCreate() {
         this.detectedAt = LocalDateTime.now();
+        if (this.maskingApplied == null) {
+            this.maskingApplied = false;
+        }
     }
 }
