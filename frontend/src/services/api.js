@@ -76,4 +76,12 @@ export const videoAPI = {
         const response = await axios.get(`${API_BASE_URL}/videos/health`);
         return response.data;
     },
+
+    // 7. 비디오 삭제
+    deleteVideo: async (videoId) => {
+        const response = await axios.delete(`${API_BASE_URL}/videos/${videoId}`,{
+            headers: getAuthHeaders(),
+        });
+        return response.data;
+    },
 };

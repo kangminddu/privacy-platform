@@ -3,7 +3,7 @@ import { videoAPI } from '../services/api';
 import { WebSocketService } from '../services/websocket';
 import '../App.css';
 
-function UploadPage() {
+function UploadPage({ onNavigateToList }) {  // ⭐ props 추가
     const [file, setFile] = useState(null);
     const [videoId, setVideoId] = useState(null);
     const [uploadProgress, setUploadProgress] = useState(0);
@@ -62,7 +62,6 @@ function UploadPage() {
             setMessage('파일 업로드 중...');
             await videoAPI.uploadToS3(uploadUrl, file, setUploadProgress);
             console.log('✅ S3 업로드 완료!');
-
             setMessage('업로드 완료! AI 처리 시작...');
 
             // 3️⃣ WebSocket 연결
@@ -160,10 +159,7 @@ function UploadPage() {
                 <div className="progress-section">
                     <h3>📤 업로드 중...</h3>
                     <div className="progress-bar">
-                        <div
-                            className="progress-fill"
-                            style={{ width: `${uploadProgress}%` }}
-                        />
+                        <div className="progress-fill" style={{ width: `${uploadProgress}%` }} />
                     </div>
                     <p>{uploadProgress}%</p>
                 </div>
@@ -174,16 +170,13 @@ function UploadPage() {
                 <div className="progress-section">
                     <h3>⚙️ AI 처리 중...</h3>
                     <div className="progress-bar">
-                        <div
-                            className="progress-fill processing"
-                            style={{ width: `${processProgress}%` }}
-                        />
+                        <div className="progress-fill processing" style={{ width: `${processProgress}%` }} />
                     </div>
                     <p>{processProgress}% - {message}</p>
                 </div>
             )}
 
-            {/* 결과 */}
+            {/* 처리 완료 */}
             {status === 'completed' && result && (
                 <div className="result-section">
                     <h2>✅ 처리 완료!</h2>
@@ -207,6 +200,7 @@ function UploadPage() {
                         >
                             📥 원본 다운로드
                         </a>
+
                         <a
                             href={result.processedDownloadUrl}
                             target="_blank"
@@ -217,9 +211,17 @@ function UploadPage() {
                         </a>
                     </div>
 
-                    <button onClick={handleReset} className="btn-secondary">
-                        🔄 새로 시작
-                    </button>
+                    {/* ⭐ 버튼 그룹 */}
+                    <div className="action-buttons">
+                        <button onClick={handleReset} className="btn-secondary">
+                            🔄 새로 시작
+                        </button>
+                        {onNavigateToList && (
+                            <button onClick={onNavigateToList} className="btn-primary">
+                                📋 내 비디오 보기
+                            </button>
+                        )}
+                    </div>
                 </div>
             )}
 
