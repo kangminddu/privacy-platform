@@ -1,42 +1,54 @@
 package com.privacy.privacyplatform.config;
 
 import io.github.cdimascio.dotenv.Dotenv;
-import org.springframework.context.ApplicationContextInitializer;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.MapPropertySource;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Properties;
 
-public class DotenvConfig implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+@Configuration
+public class DotenvConfig {
 
-    @Override
-    public void initialize(ConfigurableApplicationContext applicationContext) {
-        ConfigurableEnvironment environment = applicationContext.getEnvironment();
+    @Bean
+    public static PropertySourcesPlaceholderConfigurer propertyConfigurer() {
+        PropertySourcesPlaceholderConfigurer configurer = new PropertySourcesPlaceholderConfigurer();
 
         try {
-            // .env 파일 로드
             Dotenv dotenv = Dotenv.configure()
-                    .directory("./")  // 프로젝트 루트
-                    .ignoreIfMissing()  // .env 없어도 에러 안 남
+                    .directory(System.getProperty("user.dir"))
+                    .ignoreIfMissing()
                     .load();
-
-            // 환경변수를 Spring Environment에 추가
-            Map<String, Object> dotenvMap = new HashMap<>();
-            dotenv.entries().forEach(entry -> {
-                dotenvMap.put(entry.getKey(), entry.getValue());
-                // System property로도 설정 (선택사항)
-                System.setProperty(entry.getKey(), entry.getValue());
-            });
-
-            environment.getPropertySources()
-                    .addFirst(new MapPropertySource("dotenvProperties", dotenvMap));
 
             System.out.println("✅ .env 파일 로드 완료!");
 
+            Properties props = new Properties();
+
+            // AWS S3
+            props.setProperty("aws.s3.bucket-name",
+                    dotenv.get("AWS_S3_BUCKET_NAME", ""));
+            props.setProperty("aws.s3.region",
+                    dotenv.get("AWS_S3_REGION", "ap-northeast-2"));
+            props.setProperty("aws.access-key-id",
+                    dotenv.get("AWS_ACCESS_KEY_ID", ""));
+            props.setProperty("aws.secret-access-key",
+                    dotenv.get("AWS_SECRET_ACCESS_KEY", ""));
+
+            // JWT
+            props.setProperty("jwt.secret",
+                    dotenv.get("JWT_SECRET", "default-secret-key-change-in-production"));
+            props.setProperty("jwt.access-token-expiration",
+                    dotenv.get("JWT_ACCESS_TOKEN_EXPIRATION", "900000"));
+            props.setProperty("jwt.refresh-token-expiration",
+                    dotenv.get("JWT_REFRESH_TOKEN_EXPIRATION", "604800000"));
+
+            configurer.setProperties(props);
+
         } catch (Exception e) {
-            System.out.println("⚠️ .env 파일을 찾을 수 없습니다. 기본값을 사용합니다.");
+            System.err.println("⚠️ .env 파일 로드 실패: " + e.getMessage());
+            configurer.setProperties(new Properties());
         }
+
+        return configurer;
     }
 }

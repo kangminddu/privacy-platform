@@ -17,6 +17,8 @@ import com.privacy.privacyplatform.video.entity.enums.ProcessStatus;
 import com.privacy.privacyplatform.video.repository.DetectionRepository;
 import com.privacy.privacyplatform.video.repository.VideoRepository;
 import com.privacy.privacyplatform.websocket.dto.ProgressMessage;
+import com.privacy.privacyplatform.user.User;
+import com.privacy.privacyplatform.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -40,16 +42,23 @@ public class VideoService {
     private final AIServerService aiServerService;
     private final SimpMessagingTemplate messagingTemplate;
     private final ObjectMapper objectMapper;
+    private final UserRepository userRepository;
 
     /**
      * 1. 업로드 URL 생성 (Pre-signed URL)
+     *  userId 파라미터 추가
      */
     @Transactional
-    public InitUploadResponse initUpload(InitUploadRequest request) {
-        log.info("업로드 초기화: {}", request.getFilename());
+    public InitUploadResponse initUpload(InitUploadRequest request, String userId) {
+        log.info("업로드 초기화: filename={}, userId={}", request.getFilename(), userId);
+
+        // ⭐ 사용자 조회
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
 
         // Video 엔티티 생성
         Video video = Video.builder()
+                .user(user)
                 .originalFilename(request.getFilename())
                 .contentType(request.getContentType())
                 .status(ProcessStatus.UPLOADED)
@@ -63,7 +72,7 @@ public class VideoService {
                 request.getContentType()
         );
 
-        log.info("비디오 생성 완료: videoId={}", video.getVideoId());
+        log.info("비디오 생성 완료: videoId={}, userId={}", video.getVideoId(), userId);
 
         return InitUploadResponse.builder()
                 .videoId(video.getVideoId())
@@ -74,6 +83,7 @@ public class VideoService {
 
     /**
      * 2. 비디오 처리 시작 (비동기)
+     * - 변경 없음 (그대로 유지)
      */
     @Async
     @Transactional
@@ -122,12 +132,18 @@ public class VideoService {
 
     /**
      * 3. 비디오 결과 조회
+     * ⭐ userId 파라미터 추가 (권한 체크)
      */
-    public VideoResultResponse getVideoResult(String videoId) {
-        log.info("비디오 조회: videoId={}", videoId);
+    public VideoResultResponse getVideoResult(String videoId, String userId) {
+        log.info("비디오 조회: videoId={}, userId={}", videoId, userId);
 
         Video video = videoRepository.findByVideoId(videoId)
                 .orElseThrow(() -> new RuntimeException("Video not found: " + videoId));
+
+        // ⭐ 권한 체크 (본인의 비디오만 조회 가능)
+        if (!video.getUser().getUserId().equals(userId)) {
+            throw new RuntimeException("본인의 비디오만 조회할 수 있습니다");
+        }
 
         // Download URL 생성
         String originalUrl = video.getS3OriginalPath() != null
@@ -164,17 +180,91 @@ public class VideoService {
     }
 
     /**
+     * ⭐ 4. 내 비디오 목록 조회 (새로 추가!)
+     */
+    public List<VideoResultResponse> getMyVideos(String userId) {
+        log.info("내 비디오 목록 조회: userId={}", userId);
+
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
+
+        List<Video> videos = videoRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+
+        return videos.stream()
+                .map(video -> {
+                    String originalUrl = video.getS3OriginalPath() != null
+                            ? s3Service.generatePresignedDownloadUrl(video.getS3OriginalPath())
+                            : null;
+
+                    String processedUrl = video.getS3ProcessedPath() != null
+                            ? s3Service.generatePresignedDownloadUrl(video.getS3ProcessedPath())
+                            : null;
+
+                    List<VideoResultResponse.DetectionDto> detectionDtos = video.getDetections().stream()
+                            .map(this::convertToDetectionDto)
+                            .collect(Collectors.toList());
+
+                    VideoResultResponse.DetectionStatistics statistics = calculateStatistics(video.getDetections());
+
+                    return VideoResultResponse.builder()
+                            .videoId(video.getVideoId())
+                            .originalFilename(video.getOriginalFilename())
+                            .status(video.getStatus())
+                            .originalDownloadUrl(originalUrl)
+                            .processedDownloadUrl(processedUrl)
+                            .fileSizeBytes(video.getFileSizeBytes())
+                            .durationSeconds(video.getDurationSeconds())
+                            .frameCount(video.getFrameCount())
+                            .fps(video.getFps())
+                            .detections(detectionDtos)
+                            .statistics(statistics)
+                            .uploadedAt(video.getUploadedAt())
+                            .processedAt(video.getProcessedAt())
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * ⭐ 5. 비디오 삭제 (새로 추가!)
+     */
+    @Transactional
+    public void deleteVideo(String videoId, String userId) {
+        log.info("비디오 삭제: videoId={}, userId={}", videoId, userId);
+
+        Video video = videoRepository.findByVideoId(videoId)
+                .orElseThrow(() -> new RuntimeException("Video not found: " + videoId));
+
+        // 권한 체크
+        if (!video.getUser().getUserId().equals(userId)) {
+            throw new RuntimeException("본인의 비디오만 삭제할 수 있습니다");
+        }
+
+        // S3에서 삭제
+        if (video.getS3OriginalPath() != null) {
+            s3Service.deleteFile(video.getS3OriginalPath());
+        }
+        if (video.getS3ProcessedPath() != null) {
+            s3Service.deleteFile(video.getS3ProcessedPath());
+        }
+
+        // DB에서 삭제
+        videoRepository.delete(video);
+        log.info("비디오 삭제 완료: videoId={}", videoId);
+    }
+
+    // ============== 아래는 기존 메서드 그대로 유지 ==============
+
+    /**
      * AI 처리 결과 저장
      */
     private void saveProcessingResult(Video video, AIProcessResponse response) {
-        // 처리된 파일 경로 저장
         video.setS3ProcessedPath(response.getProcessedPath());
         video.setFrameCount(response.getFrameCount());
         video.setDurationSeconds(response.getDurationSeconds());
         video.setFps(response.getFps());
         video.updateStatus(ProcessStatus.COMPLETED);
 
-        // 탐지 결과 저장
         if (response.getDetections() != null) {
             for (AIProcessResponse.DetectionResult aiDetection : response.getDetections()) {
                 Detection detection = Detection.builder()
