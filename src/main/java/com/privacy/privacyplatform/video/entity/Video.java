@@ -1,5 +1,6 @@
 package com.privacy.privacyplatform.video.entity;
 
+import com.privacy.privacyplatform.user.User;
 import com.privacy.privacyplatform.video.entity.enums.ProcessStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -21,6 +22,10 @@ public class Video {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(name = "video_id", unique = true, nullable = false, length = 50)
     private String videoId;  // UUID
@@ -62,12 +67,16 @@ public class Video {
     @Column(name = "uploaded_at", nullable = false, updatable = false)
     private LocalDateTime uploadedAt;
 
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
     @Column(name = "processed_at")
     private LocalDateTime processedAt;
 
     @PrePersist
     protected void onCreate() {
         this.uploadedAt = LocalDateTime.now();
+        this.createdAt = LocalDateTime.now();
         if (this.videoId == null) {
             this.videoId = UUID.randomUUID().toString();
         }

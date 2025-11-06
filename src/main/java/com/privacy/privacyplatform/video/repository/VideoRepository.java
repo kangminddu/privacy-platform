@@ -12,6 +12,14 @@ import java.util.Optional;
 public interface VideoRepository extends JpaRepository<Video, Long> {
     Optional<Video> findByVideoId(String videoId);
 
+    List<Video> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+    long countByUserId(Long userId);
+
+    List<Video> findByUserIdOrderByUploadedAtDesc(Long userId);
+
+    List<Video> findByUserIdAndStatusOrderByUploadedAtDesc(Long userId, ProcessStatus status);
+
     List<Video> findByStatus(ProcessStatus status);
 
     boolean existsByVideoId(String videoId);

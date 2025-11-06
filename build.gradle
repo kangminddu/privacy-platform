@@ -31,6 +31,15 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.springframework.boot:spring-boot-starter-webflux' // fastAPI 호출
 
+    // Spring Security + JWT
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.3'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.3'
+
+    // 비밀번호 검증
+    implementation 'org.passay:passay:1.6.4'
+
     // Database
     runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
 //    runtimeOnly 'com.h2database:h2'
