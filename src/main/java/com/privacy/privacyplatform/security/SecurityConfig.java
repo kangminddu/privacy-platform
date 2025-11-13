@@ -46,12 +46,12 @@ public class SecurityConfig {
                         // 나머지는 인증 필요
                         .anyRequest().authenticated()
                 )
-                // ⭐ OAuth2 로그인 설정
+                //  OAuth2 로그인 설정
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(authorization -> authorization
                                 .baseUri("/oauth2/authorization"))
                         .redirectionEndpoint(redirection -> redirection
-                                .baseUri("/api/auth/oauth2/callback/*"))
+                                .baseUri("/login/oauth2/code/*"))
                         .userInfoEndpoint(userInfo ->
                                 userInfo.userService(customOAuth2UserService))
                         .successHandler(oAuth2SuccessHandler)
