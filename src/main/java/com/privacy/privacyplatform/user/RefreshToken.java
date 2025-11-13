@@ -29,7 +29,7 @@ public class RefreshToken {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @Builder.Default  // ⭐ 추가!
+    @Builder.Default
     @Column(nullable = false)
     private Boolean revoked = false;
 
@@ -46,6 +46,9 @@ public class RefreshToken {
     protected void onCreate() {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
+        }
+        if (expiresAt == null) {  
+            expiresAt = LocalDateTime.now().plusDays(7);
         }
     }
 
