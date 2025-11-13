@@ -55,10 +55,10 @@ jobs:
           context: .
           push: true
           tags: |
-            minsookms/safe-masking-backend:latest
-            minsookms/safe-masking-backend:${{ github.sha }}
-          cache-from: type=registry,ref=minsookms/safe-masking-backend:buildcache
-          cache-to: type=registry,ref=minsookms/safe-masking-backend:buildcache,mode=max
+            kangmandu/safe-masking-backend:latest
+            kangmandu/safe-masking-backend:${{ github.sha }}
+          cache-from: type=registry,ref=kangmandu/safe-masking-backend:buildcache
+          cache-to: type=registry,ref=kangmandu/safe-masking-backend:buildcache,mode=max
 
   deploy:
     name: Deploy to EC2
@@ -78,7 +78,7 @@ jobs:
             echo "🚀 배포 시작: $IMAGE_TAG"
             
             # Docker 이미지 Pull
-            docker pull minsookms/safe-masking-backend:$IMAGE_TAG
+            docker pull kangmandu/safe-masking-backend:$IMAGE_TAG
             
             # 기존 컨테이너 중지 및 제거
             docker stop safe-masking-backend || true
@@ -106,7 +106,7 @@ jobs:
               -e KAKAO_CLIENT_SECRET="${{ secrets.KAKAO_CLIENT_SECRET }}" \
               -e GMAIL_USERNAME="${{ secrets.MAIL_USERNAME }}" \
               -e GMAIL_PASSWORD="${{ secrets.MAIL_PASSWORD }}" \
-              minsookms/safe-masking-backend:$IMAGE_TAG
+              kangmandu/safe-masking-backend:$IMAGE_TAG
             
             # 컨테이너 시작 대기
             echo "⏳ 컨테이너 시작 대기 중..."
@@ -123,7 +123,7 @@ jobs:
             fi
             
             # 오래된 이미지 정리 (최근 3개 버전만 유지)
-            docker images minsookms/safe-masking-backend --format "{{.ID}} {{.CreatedAt}}" | \
+            docker images kangmandu/safe-masking-backend --format "{{.ID}} {{.CreatedAt}}" | \
               tail -n +4 | awk '{print $1}' | xargs -r docker rmi -f || true
             
             echo "✅ 배포 완료! (이미지: $IMAGE_TAG)"
