@@ -1,12 +1,9 @@
 package com.privacy.privacyplatform.auth;
 
-import com.privacy.privacyplatform.auth.dto.AuthResponse;
-import com.privacy.privacyplatform.auth.dto.LoginRequest;
-import com.privacy.privacyplatform.auth.dto.RegisterRequest;
-import com.privacy.privacyplatform.auth.dto.UserResponse;
+import com.privacy.privacyplatform.auth.dto.*;
 import com.privacy.privacyplatform.security.JwtService;
 import com.privacy.privacyplatform.user.User;
-import jakarta.servlet.http.HttpServletRequest;
+import com.privacy.privacyplatform.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -21,8 +18,31 @@ public class AuthController {
 
     private final AuthService authService;
     private final JwtService jwtService;
+    private final UserRepository userRepository;
 
-    // 회원가입
+    /**
+     * 1. 이메일 인증 코드 발송
+     */
+    @PostMapping("/send-code")
+    public ResponseEntity<String> sendVerificationCode(@RequestBody EmailRequest request) {
+        log.info("📧 인증 코드 발송 요청: {}", request.getEmail());
+        authService.sendVerificationCode(request.getEmail());
+        return ResponseEntity.ok("인증 코드가 발송되었습니다.");
+    }
+
+    /**
+     * 2. 이메일 인증 코드 확인
+     */
+    @PostMapping("/verify-code")
+    public ResponseEntity<String> verifyCode(@RequestBody VerifyCodeRequest request) {
+        log.info("✅ 인증 코드 확인 요청: {}", request.getEmail());
+        authService.verifyEmail(request.getEmail(), request.getCode());
+        return ResponseEntity.ok("이메일 인증이 완료되었습니다.");
+    }
+
+    /**
+     * 3. 회원가입
+     */
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
         log.info("📝 회원가입 요청: email={}", request.getEmail());
@@ -30,53 +50,62 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    // 로그인
+    /**
+     * 4. 로그인
+     */
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(
-            @RequestBody LoginRequest request,
-            HttpServletRequest httpRequest) {
-
-        String ipAddress = getClientIp(httpRequest);
-        log.info("🔐 로그인 요청: email={}, ip={}", request.getEmail(), ipAddress);
-
-        AuthResponse response = authService.login(request, ipAddress);
+    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+        log.info("🔐 로그인 요청: email={}", request.getEmail());
+        AuthResponse response = authService.login(request);
         return ResponseEntity.ok(response);
     }
 
-    // 내 정보 조회
+    /**
+     * 5. 토큰 갱신
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refreshToken(@RequestBody RefreshTokenRequest request) {
+        log.info("🔄 토큰 갱신 요청");
+        AuthResponse response = authService.refreshToken(request.getRefreshToken());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 6. 로그아웃
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestBody RefreshTokenRequest request) {
+        log.info("👋 로그아웃 요청");
+        authService.logout(request.getRefreshToken());
+        return ResponseEntity.ok("로그아웃 되었습니다.");
+    }
+
+    /**
+     * 7. 내 정보 조회
+     */
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser(Authentication authentication) {
-        User user = (User) authentication.getPrincipal();
-        UserResponse response = authService.getCurrentUser(user.getUserId());
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        UserResponse response = UserResponse.builder()
+                .userId(user.getUserId())
+                .email(user.getEmail())
+                .username(user.getUsername())
+                .profileImageUrl(user.getProfileImageUrl())
+                .emailVerified(user.getEmailVerified())
+                .createdAt(user.getCreatedAt())
+                .build();
+
         return ResponseEntity.ok(response);
     }
 
-    // 로그아웃
-    @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@RequestHeader("Authorization") String token) {
-        String jwt = token.replace("Bearer ", "");
-        authService.logout(jwt);
-        return ResponseEntity.ok().build();
-    }
-
-    // Health Check
+    /**
+     * 8. Health Check
+     */
     @GetMapping("/health")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("Auth Service OK");
-    }
-
-    // 클라이언트 IP 추출
-    private String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("Proxy-Client-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("WL-Proxy-Client-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        return ip;
     }
 }

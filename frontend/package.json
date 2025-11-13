@@ -1,5 +1,5 @@
 {
-  "name": "frontend",
+  "name": "safe-masking-frontend",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -14,6 +14,7 @@
     "axios": "^1.13.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-router-dom": "^7.9.5",
     "sockjs-client": "^1.6.1"
   },
   "devDependencies": {

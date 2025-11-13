@@ -1,41 +1,40 @@
-const TOKEN_KEY = 'access_token';
-const REFRESH_TOKEN_KEY = 'refresh_token';
-const USER_KEY = 'user_info';
-
 export const tokenManager = {
-    // 토큰 저장
     saveToken: (accessToken, refreshToken) => {
-        localStorage.setItem(TOKEN_KEY, accessToken);
-        if (refreshToken) {
-            localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-        }
+        console.log('💾 토큰 저장:', { accessToken: '있음', refreshToken: '있음' });
+        localStorage.setItem('token', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
     },
 
-    // 사용자 정보 저장
-    saveUser: (user) => {
-        localStorage.setItem(USER_KEY, JSON.stringify(user));
-    },
-
-    // 토큰 가져오기
     getToken: () => {
-        return localStorage.getItem(TOKEN_KEY);
+        const token = localStorage.getItem('token');
+        console.log('🔍 토큰 조회:', token ? '있음' : '없음');
+        return token;
     },
 
-    // 사용자 정보 가져오기
-    getUser: () => {
-        const user = localStorage.getItem(USER_KEY);
-        return user ? JSON.parse(user) : null;
+    getRefreshToken: () => {
+        return localStorage.getItem('refreshToken');
     },
 
-    // 토큰 삭제
     clearToken: () => {
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(REFRESH_TOKEN_KEY)
-        localStorage.removeItem(USER_KEY);
+        console.log('🗑️ 토큰 삭제');
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
     },
 
-    // 토큰 있는지 확인
-    hasToken: () => {
-        return !!localStorage.getItem(TOKEN_KEY);
+    saveUser: (user) => {
+        console.log('💾 유저 정보 저장:', user);
+        localStorage.setItem('user', JSON.stringify(user));
+    },
+
+    getUser: () => {
+        const userStr = localStorage.getItem('user');
+        if (!userStr) {
+            console.log('❌ 유저 정보 없음');
+            return null;
+        }
+        const user = JSON.parse(userStr);
+        console.log('👤 유저 정보 조회:', user);
+        return user;
     },
 };

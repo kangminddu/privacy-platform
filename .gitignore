@@ -154,3 +154,16 @@ test-images/
 ### Gradle 캐시 ###
 .gradle/
 gradle-app.setting
+
+# ========== 추가: 민감한 파일 ==========
+# JWT Secret
+jwt-secret.txt
+
+# 카카오 키
+kakao-*.json
+
+# Gmail 비밀번호
+gmail-password.txt
+
+# 로컬 설정
+config/local/

@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # 백엔드 서비스
+  backend:
+    build: .
+    container_name: safe-masking-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - DB_NAME=privacy_platform
+      - DB_USERNAME=root
+      - DB_PASSWORD=rootpassword
+    env_file:
+      - .env
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - safe-masking-network
+    restart: unless-stopped
+
+  # MariaDB 데이터베이스
+  mariadb:
+    image: mariadb:11.0
+    container_name: safe-masking-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: privacy_platform
+      MYSQL_USER: privacy_user
+      MYSQL_PASSWORD: privacy_password
+    ports:
+      - "3307:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - safe-masking-network
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+networks:
+  safe-masking-network:
+    driver: bridge
+
+volumes:
+  mariadb_data:

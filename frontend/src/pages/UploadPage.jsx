@@ -3,7 +3,7 @@ import { videoAPI } from '../services/api';
 import { WebSocketService } from '../services/websocket';
 import '../App.css';
 
-function UploadPage({ onNavigateToList }) {  // ⭐ props 추가
+function UploadPage({ onNavigateToList }) {
     const [file, setFile] = useState(null);
     const [videoId, setVideoId] = useState(null);
     const [uploadProgress, setUploadProgress] = useState(0);
@@ -115,7 +115,7 @@ function UploadPage({ onNavigateToList }) {  // ⭐ props 추가
 
     return (
         <div className="container">
-            <h1>🔒 Privacy Platform</h1>
+            <h1>🔒 Safe Masking</h1>
             <p>비디오 내 개인정보 자동 마스킹</p>
 
             {/* 파일 업로드 구역 */}
@@ -133,7 +133,7 @@ function UploadPage({ onNavigateToList }) {  // ⭐ props 추가
                 ) : (
                     <div>
                         <p>📁 비디오 파일을 드래그하거나 클릭하세요</p>
-                        <p style={{ fontSize: '14px', color: '#666' }}>
+                        <p style={{ fontSize: "14px", color: "#666" }}>
                             지원 형식: MP4, AVI, MOV
                         </p>
                     </div>
@@ -143,41 +143,49 @@ function UploadPage({ onNavigateToList }) {  // ⭐ props 추가
                     type="file"
                     accept="video/*"
                     onChange={handleFileSelect}
-                    style={{ display: 'none' }}
+                    style={{ display: "none" }}
                 />
             </div>
 
             {/* 업로드 버튼 */}
-            {file && status === 'idle' && (
+            {file && status === "idle" && (
                 <button onClick={handleUpload} className="btn-primary">
                     🚀 처리 시작
                 </button>
             )}
 
             {/* 업로드 진행률 */}
-            {status === 'uploading' && (
+            {status === "uploading" && (
                 <div className="progress-section">
                     <h3>📤 업로드 중...</h3>
                     <div className="progress-bar">
-                        <div className="progress-fill" style={{ width: `${uploadProgress}%` }} />
+                        <div
+                            className="progress-fill"
+                            style={{ width: `${uploadProgress}%` }}
+                        />
                     </div>
                     <p>{uploadProgress}%</p>
                 </div>
             )}
 
             {/* AI 처리 중 */}
-            {status === 'processing' && (
+            {status === "processing" && (
                 <div className="progress-section">
                     <h3>⚙️ AI 처리 중...</h3>
                     <div className="progress-bar">
-                        <div className="progress-fill processing" style={{ width: `${processProgress}%` }} />
+                        <div
+                            className="progress-fill processing"
+                            style={{ width: `${processProgress}%` }}
+                        />
                     </div>
-                    <p>{processProgress}% - {message}</p>
+                    <p>
+                        {processProgress}% - {message}
+                    </p>
                 </div>
             )}
 
             {/* 처리 완료 */}
-            {status === 'completed' && result && (
+            {status === "completed" && result && (
                 <div className="result-section">
                     <h2>✅ 처리 완료!</h2>
 
@@ -187,10 +195,14 @@ function UploadPage({ onNavigateToList }) {  // ⭐ props 추가
                             <p>총 탐지: {result.statistics.totalDetections}개</p>
                             <p>😊 얼굴: {result.statistics.faceCount}개</p>
                             <p>🚗 번호판: {result.statistics.licensePlateCount}개</p>
-                            <p>📈 평균 신뢰도: {(result.statistics.averageConfidence * 100).toFixed(1)}%</p>
+                            <p>
+                                📈 평균 신뢰도:{" "}
+                                {(result.statistics.averageConfidence * 100).toFixed(1)}%
+                            </p>
                         </div>
                     </div>
 
+                    {/* 다운로드 버튼 */}
                     <div className="download-buttons">
                         <a
                             href={result.originalDownloadUrl}
@@ -200,7 +212,6 @@ function UploadPage({ onNavigateToList }) {  // ⭐ props 추가
                         >
                             📥 원본 다운로드
                         </a>
-
                         <a
                             href={result.processedDownloadUrl}
                             target="_blank"
@@ -211,7 +222,7 @@ function UploadPage({ onNavigateToList }) {  // ⭐ props 추가
                         </a>
                     </div>
 
-                    {/* ⭐ 버튼 그룹 */}
+                    {/* 버튼 그룹 */}
                     <div className="action-buttons">
                         <button onClick={handleReset} className="btn-secondary">
                             🔄 새로 시작
@@ -226,14 +237,14 @@ function UploadPage({ onNavigateToList }) {  // ⭐ props 추가
             )}
 
             {/* 실패 */}
-            {status === 'failed' && (
+            {status === "failed" && (
                 <div className="error-section">
                     <h2>❌ 처리 실패</h2>
                     <p>{message}</p>
                     <button
                         onClick={() => {
-                            setStatus('idle');
-                            setMessage('');
+                            setStatus("idle");
+                            setMessage("");
                         }}
                         className="btn-secondary"
                     >

@@ -43,7 +43,7 @@ public class User {
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
-    // 보안 관련 필드
+    // 보안 관련 필드 (간소화)
     @Builder.Default
     @Column(name = "is_active")
     private Boolean isActive = true;
@@ -52,22 +52,6 @@ public class User {
     @Column(name = "email_verified")
     private Boolean emailVerified = false;
 
-    @Builder.Default
-    @Column(name = "failed_login_attempts")
-    private Integer failedLoginAttempts = 0;
-
-    @Column(name = "locked_until")
-    private LocalDateTime lockedUntil;
-
-    @Column(name = "password_changed_at")
-    private LocalDateTime passwordChangedAt;
-
-    @Builder.Default
-    @Column(name = "must_change_password")
-    private Boolean mustChangePassword = false;
-
-    @Column(name = "last_login_ip", length = 45)
-    private String lastLoginIp;
 
     // 관계
     @Builder.Default
@@ -93,20 +77,4 @@ public class User {
         updatedAt = LocalDateTime.now();
     }
 
-    // 유틸리티 메서드
-    public boolean isAccountLocked() {
-        return lockedUntil != null && lockedUntil.isAfter(LocalDateTime.now());
-    }
-
-    public void resetLoginAttempts() {
-        this.failedLoginAttempts = 0;
-        this.lockedUntil = null;
-    }
-
-    public void incrementFailedLoginAttempts() {
-        this.failedLoginAttempts++;
-        if (this.failedLoginAttempts >= 5) {
-            this.lockedUntil = LocalDateTime.now().plusMinutes(15);
-        }
-    }
 }
