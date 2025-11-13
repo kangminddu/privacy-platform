@@ -1,0 +1,12 @@
+.git
+.github
+.gradle
+build
+frontend
+node_modules
+*.md
+.env
+.DS_Store
+.idea
+*.iml
+

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { tokenManager } from '../utils/tokenManager';
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 // JWT 토큰 헤더 가져오기
 const getAuthHeaders = () => {
@@ -9,6 +9,75 @@ const getAuthHeaders = () => {
     return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
+// ========== 인증 API ==========
+export const authAPI = {
+    // 이메일 인증 코드 발송
+    sendVerificationCode: async (email) => {
+        const response = await axios.post(
+            `${API_BASE_URL}/auth/send-code`,
+            { email }
+        );
+        return response.data;
+    },
+
+    // 이메일 인증 코드 확인
+    verifyCode: async (email, code) => {
+        const response = await axios.post(
+            `${API_BASE_URL}/auth/verify-code`,
+            { email, code }
+        );
+        return response.data;
+    },
+
+    // 회원가입
+    register: async (email, password, username) => {
+        const response = await axios.post(
+            `${API_BASE_URL}/auth/register`,
+            { email, password, username }
+        );
+        return response.data;
+    },
+
+    // 로그인
+    login: async (email, password) => {
+        const response = await axios.post(
+            `${API_BASE_URL}/auth/login`,
+            { email, password }
+        );
+        return response.data;
+    },
+
+    // 로그아웃
+    logout: async (refreshToken) => {
+        const response = await axios.post(
+            `${API_BASE_URL}/auth/logout`,
+            { refreshToken }
+        );
+        return response.data;
+    },
+
+    // 토큰 갱신
+    refreshToken: async (refreshToken) => {
+        const response = await axios.post(
+            `${API_BASE_URL}/auth/refresh`,
+            { refreshToken }
+        );
+        return response.data;
+    },
+
+    // 내 정보 조회
+    getMe: async () => {
+        const response = await axios.get(
+            `${API_BASE_URL}/auth/me`,
+            {
+                headers: getAuthHeaders(),
+            }
+        );
+        return response.data;
+    },
+};
+
+// ========== 비디오 API ==========
 export const videoAPI = {
     // 1. 업로드 URL 요청
     initUpload: async (filename, contentType) => {
@@ -79,9 +148,12 @@ export const videoAPI = {
 
     // 7. 비디오 삭제
     deleteVideo: async (videoId) => {
-        const response = await axios.delete(`${API_BASE_URL}/videos/${videoId}`,{
-            headers: getAuthHeaders(),
-        });
+        const response = await axios.delete(
+            `${API_BASE_URL}/videos/${videoId}`,
+            {
+                headers: getAuthHeaders(),
+            }
+        );
         return response.data;
     },
 };
