@@ -23,3 +23,4 @@ public class PrivacyPlatformApplication {
 }
 // Docker Hub 인증 수정 테스트
 // EC2 보안 그룹 수정 후 재배포
+// 배포 테스트 2025-11-17
