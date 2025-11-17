@@ -47,7 +47,7 @@ public class RefreshToken {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }
-        if (expiresAt == null) {  
+        if (expiresAt == null) {
             expiresAt = LocalDateTime.now().plusDays(7);
         }
     }
