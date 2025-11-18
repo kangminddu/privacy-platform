@@ -5,6 +5,7 @@ import com.privacy.privacyplatform.auth.oauth2.OAuth2SuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;  // ← 추가!
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -32,8 +33,10 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))  // ✅ 변경!
+                        session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
+                        // CORS preflight 요청 허용 - 최우선!
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // ← 이 줄 추가!
                         // 인증 없이 접근 가능
                         .requestMatchers(
                                 "/api/auth/**",
