@@ -13,6 +13,7 @@ services:
       - DB_NAME=privacy_platform
       - DB_USERNAME=root
       - DB_PASSWORD=rootpassword
+      - FRONTEND_URL=https://safe-masking.vercel.app
     env_file:
       - .env
     depends_on:
