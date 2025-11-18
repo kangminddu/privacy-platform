@@ -78,7 +78,7 @@ jobs:
             echo "🚀 배포 시작: $IMAGE_TAG"
             
             # Docker 이미지 Pull
-            docker pull kangmandu/safe-masking-backend:$IMAGE_TAG
+            docker pull kangmandu/safe-masking-backend:latest
             
             # 기존 컨테이너 중지 및 제거
             docker stop safe-masking-backend || true
