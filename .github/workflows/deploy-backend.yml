@@ -73,58 +73,26 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # SHA 태그로 특정 버전 배포
-            IMAGE_TAG="${{ github.sha }}"
-            echo "🚀 배포 시작: $IMAGE_TAG"
+            echo "🚀 배포 시작"
             
-            # Docker 이미지 Pull
+            cd ~/privacy-platform
+            
+            # 최신 이미지 Pull
             docker pull kangmandu/safe-masking-backend:latest
             
-            # 기존 컨테이너 중지 및 제거
-            docker stop safe-masking-backend || true
-            docker rm safe-masking-backend || true
+            # Docker Compose로 재시작
+            docker-compose down
+            docker-compose up -d
             
-            # 새 컨테이너 실행
-            docker run -d \
-              --name safe-masking-backend \
-              --restart unless-stopped \
-              -p 8080:8080 \
-              -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
-              -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
-              -e AWS_S3_BUCKET_NAME="${{ secrets.AWS_S3_BUCKET_NAME }}" \
-              -e AWS_S3_REGION="${{ secrets.AWS_REGION }}" \
-              -e DB_HOST="mariadb" \
-              -e DB_PORT="3306" \
-              -e DB_NAME="privacy_platform" \
-              -e DB_USERNAME="${{ secrets.DB_USERNAME }}" \
-              -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
-              -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
-              -e JWT_ACCESS_TOKEN_EXPIRATION="${{ secrets.JWT_EXPIRATION }}" \
-              -e JWT_REFRESH_TOKEN_EXPIRATION="604800000" \
-              -e AI_SERVER_URL="${{ secrets.AI_SERVER_URL }}" \
-              -e KAKAO_CLIENT_ID="${{ secrets.KAKAO_CLIENT_ID }}" \
-              -e KAKAO_CLIENT_SECRET="${{ secrets.KAKAO_CLIENT_SECRET }}" \
-              -e GMAIL_USERNAME="${{ secrets.MAIL_USERNAME }}" \
-              -e GMAIL_PASSWORD="${{ secrets.MAIL_PASSWORD }}" \
-              -e FRONTEND_URL="${{ secrets.FRONTEND_URL }}" \
-              kangmandu/safe-masking-backend:$IMAGE_TAG
-            
-            # 컨테이너 시작 대기
             echo "⏳ 컨테이너 시작 대기 중..."
             sleep 15
             
             # 헬스체크
             if docker ps | grep -q safe-masking-backend; then
-              echo "✅ 컨테이너 실행 성공"
+              echo "✅ 배포 완료!"
               docker logs --tail 50 safe-masking-backend
             else
-              echo "❌ 컨테이너 실행 실패"
+              echo "❌ 배포 실패"
               docker logs safe-masking-backend
               exit 1
             fi
-            
-            # 오래된 이미지 정리 (최근 3개 버전만 유지)
-            docker images kangmandu/safe-masking-backend --format "{{.ID}} {{.CreatedAt}}" | \
-              tail -n +4 | awk '{print $1}' | xargs -r docker rmi -f || true
-            
-            echo "✅ 배포 완료! (이미지: $IMAGE_TAG)"
