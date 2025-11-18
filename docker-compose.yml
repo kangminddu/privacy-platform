@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # 백엔드 서비스
   backend:
-    build: .
+    image: kangmandu/safe-masking-backend:latest
     container_name: safe-masking-backend
     ports:
       - "8080:8080"
@@ -31,7 +31,7 @@ services:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: privacy_platform
       MYSQL_USER: privacy_user
-      MYSQL_PASSWORD: privacy_password
+      MYSQL_PASSWORD: 1599
     ports:
       - "3307:3306"
     volumes:
