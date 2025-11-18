@@ -106,7 +106,7 @@ jobs:
               -e KAKAO_CLIENT_SECRET="${{ secrets.KAKAO_CLIENT_SECRET }}" \
               -e GMAIL_USERNAME="${{ secrets.MAIL_USERNAME }}" \
               -e GMAIL_PASSWORD="${{ secrets.MAIL_PASSWORD }}" \
-              -e FRONTEND_URL="http://3.36.55.15:8080" \
+              -e FRONTEND_URL="https://safe-masking.vercel.app" \
               kangmandu/safe-masking-backend:$IMAGE_TAG
             
             # 컨테이너 시작 대기
