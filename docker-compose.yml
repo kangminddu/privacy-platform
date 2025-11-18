@@ -11,8 +11,8 @@ services:
       - DB_HOST=mariadb
       - DB_PORT=3306
       - DB_NAME=privacy_platform
-      - DB_USERNAME=root
-      - DB_PASSWORD=rootpassword
+      - DB_USERNAME=privacy_user
+      - DB_PASSWORD=1599
       - FRONTEND_URL=https://safe-masking.vercel.app
     env_file:
       - .env
