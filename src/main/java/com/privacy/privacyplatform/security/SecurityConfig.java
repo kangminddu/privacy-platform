@@ -37,9 +37,9 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(
-                "http://3.36.55.15:3000",
+                "https://safe-masking.vercel.app",
                 "https://safe-masking-el76qql7o-kangminsoos-projects.vercel.app",
-                "https://safe-masking.vercel.app"  // 이것도 추가!
+                "https://safe-masking.cloud"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
