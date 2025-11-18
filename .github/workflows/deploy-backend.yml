@@ -93,7 +93,7 @@ jobs:
               -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
               -e AWS_S3_BUCKET_NAME="${{ secrets.AWS_S3_BUCKET_NAME }}" \
               -e AWS_S3_REGION="${{ secrets.AWS_REGION }}" \
-              -e DB_HOST="localhost" \
+              -e DB_HOST="mariadb" \
               -e DB_PORT="3306" \
               -e DB_NAME="privacy_platform" \
               -e DB_USERNAME="${{ secrets.DB_USERNAME }}" \
