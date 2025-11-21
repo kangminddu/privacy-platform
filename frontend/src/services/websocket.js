@@ -10,12 +10,11 @@ export class WebSocketService {
     connect(videoId, onProgress) {
         return new Promise((resolve, reject) => {
             this.client = new Client({
-                webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+                webSocketFactory: () => new SockJS('https://api.safe-masking.cloud/ws'),  // ← 여기!
                 onConnect: () => {
                     console.log('✅ WebSocket 연결 성공!');
                     this.connected = true;
 
-                    // 진행 상황 구독
                     this.client.subscribe(`/topic/progress/${videoId}`, (message) => {
                         const progress = JSON.parse(message.body);
                         console.log('📡 Progress:', progress);
