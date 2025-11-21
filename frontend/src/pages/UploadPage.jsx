@@ -278,4 +278,4 @@ function UploadPage({ onNavigateToList }) {
     );
 }
 
-export default UploadPage; 
+export default UploadPage;
