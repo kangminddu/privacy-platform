@@ -10,10 +10,10 @@ services:
     environment:
       - DB_HOST=mariadb
       - DB_PORT=3306
-      - DB_NAME=privacy_platform
-      - DB_USERNAME=privacy_user
-      - DB_PASSWORD=1599
-      - FRONTEND_URL=https://safe-masking.vercel.app
+      - DB_NAME=${DB_NAME}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - FRONTEND_URL=${FRONTEND_URL}
     env_file:
       - .env
     depends_on:
@@ -28,10 +28,10 @@ services:
     image: mariadb:11.0
     container_name: safe-masking-db
     environment:
-      MYSQL_ROOT_PASSWORD: 1599
-      MYSQL_DATABASE: privacy_platform
-      MYSQL_USER: privacy_user
-      MYSQL_PASSWORD: 1599
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
     ports:
       - "3307:3306"
     volumes:

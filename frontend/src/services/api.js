@@ -116,6 +116,11 @@ export const videoAPI = {
             {
                 s3Key,
                 fileSize,
+                maskingOptions: {
+                    face: maskingOptions.face,
+                    licensePlate: maskingOptions.licensePlate,
+                    object: maskingOptions.object
+                }
             },
             {
                 headers: getAuthHeaders(),
