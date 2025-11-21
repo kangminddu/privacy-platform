@@ -110,7 +110,7 @@ export const videoAPI = {
     },
 
     // 3. 처리 시작
-    processVideo: async (videoId, s3Key, fileSize) => {
+    processVideo: async (videoId, s3Key, fileSize, maskingOptions) => {
         const response = await axios.post(
             `${API_BASE_URL}/videos/${videoId}/process`,
             {

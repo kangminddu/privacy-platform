@@ -8,47 +8,59 @@ function UploadPage({ onNavigateToList }) {
     const [videoId, setVideoId] = useState(null);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [processProgress, setProcessProgress] = useState(0);
-    const [status, setStatus] = useState('idle'); // idle, uploading, processing, completed, failed
-    const [message, setMessage] = useState('');
+    const [status, setStatus] = useState("idle");
+    const [message, setMessage] = useState("");
     const [result, setResult] = useState(null);
+
     const fileInputRef = useRef(null);
     const wsService = useRef(null);
 
-    // 파일 선택
+    const [maskingOptions, setMaskingOptions] = useState({
+        face: true,
+        licensePlate: true,
+        object: false
+    });
+
+    // 🔹 파일 선택
     const handleFileSelect = (event) => {
         const selectedFile = event.target.files[0];
-        if (selectedFile && selectedFile.type.startsWith('video/')) {
+        if (selectedFile && selectedFile.type.startsWith("video/")) {
             setFile(selectedFile);
-            setStatus('idle');
-            setMessage('');
+            setStatus("idle");
+            setMessage("");
         } else {
-            alert('비디오 파일을 선택해주세요!');
+            alert("비디오 파일을 선택해주세요!");
         }
     };
 
-    // 드래그 앤 드롭
+    // 🔹 마스킹 옵션 토글
+    const handleOptionToggle = (option) => {
+        setMaskingOptions((prev) => ({
+            ...prev,
+            [option]: !prev[option],
+        }));
+    };
+
+    // 🔹 드래그 앤 드롭
     const handleDragOver = (e) => e.preventDefault();
+
     const handleDrop = (e) => {
         e.preventDefault();
         const droppedFile = e.dataTransfer.files[0];
-        if (droppedFile && droppedFile.type.startsWith('video/')) {
+        if (droppedFile && droppedFile.type.startsWith("video/")) {
             setFile(droppedFile);
         } else {
-            alert('비디오 파일을 드롭해주세요!');
+            alert("비디오 파일을 드롭해주세요!");
         }
     };
 
-    // 업로드 및 처리
+    // 🔹 업로드
     const handleUpload = async () => {
-        if (!file) {
-            alert('파일을 선택해주세요!');
-            return;
-        }
+        if (!file) return alert("파일을 선택해주세요!");
 
         try {
-            // 1️⃣ Pre-signed URL 요청
-            setStatus('uploading');
-            setMessage('업로드 URL 생성 중...');
+            setStatus("uploading");
+            setMessage("업로드 URL 생성 중...");
 
             const { videoId: newVideoId, uploadUrl, s3Key } = await videoAPI.initUpload(
                 file.name,
@@ -56,60 +68,59 @@ function UploadPage({ onNavigateToList }) {
             );
 
             setVideoId(newVideoId);
-            console.log('📝 VideoID:', newVideoId);
+            setMessage("파일 업로드 중...");
 
-            // 2️⃣ S3 업로드
-            setMessage('파일 업로드 중...');
             await videoAPI.uploadToS3(uploadUrl, file, setUploadProgress);
-            console.log('✅ S3 업로드 완료!');
-            setMessage('업로드 완료! AI 처리 시작...');
 
-            // 3️⃣ WebSocket 연결
             wsService.current = new WebSocketService();
             await wsService.current.connect(newVideoId, (progress) => {
                 setProcessProgress(progress.percentage);
                 setMessage(progress.message);
 
-                if (progress.status === 'COMPLETED') {
-                    setStatus('completed');
+                if (progress.status === "COMPLETED") {
+                    setStatus("completed");
                     loadResult(newVideoId);
-                } else if (progress.status === 'FAILED') {
-                    setStatus('failed');
-                    setMessage('처리 실패: ' + progress.message);
+                } else if (progress.status === "FAILED") {
+                    setStatus("failed");
+                    setMessage("처리 실패: " + progress.message);
                 }
             });
 
-            // 4️⃣ 처리 요청
-            setStatus('processing');
-            await videoAPI.processVideo(newVideoId, s3Key, file.size);
-            console.log('🚀 처리 시작 요청 완료!');
+            setStatus("processing");
+            await videoAPI.processVideo(newVideoId, s3Key, file.size, maskingOptions);
+
         } catch (error) {
-            console.error('❌ 에러:', error);
-            setStatus('failed');
-            setMessage('에러 발생: ' + error.message);
+            setStatus("failed");
+            setMessage("에러 발생: " + error.message);
         }
     };
 
-    // 결과 조회
+    // 🔹 최종 결과 로드
     const loadResult = async (vid) => {
         try {
             const data = await videoAPI.getResult(vid);
             setResult(data);
-            console.log('📊 결과:', data);
         } catch (error) {
-            console.error('❌ 결과 조회 실패:', error);
+            console.error("결과 조회 실패:", error);
         }
     };
 
-    // 초기화
+    // 🔹 리셋
     const handleReset = () => {
         setFile(null);
         setVideoId(null);
-        setStatus('idle');
+        setStatus("idle");
         setResult(null);
         setUploadProgress(0);
         setProcessProgress(0);
-        setMessage('');
+        setMessage("");
+
+        setMaskingOptions({
+            face: true,
+            licensePlate: true,
+            object: false,
+        });
+
         if (wsService.current) wsService.current.disconnect();
     };
 
@@ -118,7 +129,35 @@ function UploadPage({ onNavigateToList }) {
             <h1>🔒 Safe Masking</h1>
             <p>비디오 내 개인정보 자동 마스킹</p>
 
-            {/* 파일 업로드 구역 */}
+            {/* 🎯 마스킹 옵션 */}
+            <div className="masking-options"
+                 style={{
+                     margin: "20px 0",
+                     padding: "20px",
+                     backgroundColor: "#f5f5f5",
+                     borderRadius: "10px"
+                 }}
+            >
+                <h3 style={{ marginBottom: "15px" }}>🎯 마스킹 옵션 선택</h3>
+                <div style={{ display: "flex", gap: "15px", flexWrap: "wrap" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "16px" }}>
+                        <input type="checkbox" checked={maskingOptions.face} onChange={() => handleOptionToggle("face")} />
+                        😊 얼굴
+                    </label>
+
+                    <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "16px" }}>
+                        <input type="checkbox" checked={maskingOptions.licensePlate} onChange={() => handleOptionToggle("licensePlate")} />
+                        🚗 번호판
+                    </label>
+
+                    <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "16px" }}>
+                        <input type="checkbox" checked={maskingOptions.object} onChange={() => handleOptionToggle("object")} />
+                        📦 객체
+                    </label>
+                </div>
+            </div>
+
+            {/* 📁 파일 업로드 영역 */}
             <div
                 className="upload-area"
                 onDragOver={handleDragOver}
@@ -133,11 +172,10 @@ function UploadPage({ onNavigateToList }) {
                 ) : (
                     <div>
                         <p>📁 비디오 파일을 드래그하거나 클릭하세요</p>
-                        <p style={{ fontSize: "14px", color: "#666" }}>
-                            지원 형식: MP4, AVI, MOV
-                        </p>
+                        <p style={{ fontSize: "14px", color: "#666" }}>지원 형식: MP4, AVI, MOV</p>
                     </div>
                 )}
+
                 <input
                     ref={fileInputRef}
                     type="file"
@@ -147,44 +185,31 @@ function UploadPage({ onNavigateToList }) {
                 />
             </div>
 
-            {/* 업로드 버튼 */}
             {file && status === "idle" && (
-                <button onClick={handleUpload} className="btn-primary">
-                    🚀 처리 시작
-                </button>
+                <button onClick={handleUpload} className="btn-primary">🚀 처리 시작</button>
             )}
 
-            {/* 업로드 진행률 */}
             {status === "uploading" && (
                 <div className="progress-section">
                     <h3>📤 업로드 중...</h3>
                     <div className="progress-bar">
-                        <div
-                            className="progress-fill"
-                            style={{ width: `${uploadProgress}%` }}
-                        />
+                        <div className="progress-fill" style={{ width: `${uploadProgress}%` }} />
                     </div>
                     <p>{uploadProgress}%</p>
                 </div>
             )}
 
-            {/* AI 처리 중 */}
             {status === "processing" && (
                 <div className="progress-section">
                     <h3>⚙️ AI 처리 중...</h3>
                     <div className="progress-bar">
-                        <div
-                            className="progress-fill processing"
-                            style={{ width: `${processProgress}%` }}
-                        />
+                        <div className="progress-fill processing" style={{ width: `${processProgress}%` }} />
                     </div>
-                    <p>
-                        {processProgress}% - {message}
-                    </p>
+                    <p>{processProgress}% - {message}</p>
                 </div>
             )}
 
-            {/* 처리 완료 */}
+            {/* ✅ 처리 완료 화면 */}
             {status === "completed" && result && (
                 <div className="result-section">
                     <h2>✅ 처리 완료!</h2>
@@ -196,13 +221,11 @@ function UploadPage({ onNavigateToList }) {
                             <p>😊 얼굴: {result.statistics.faceCount}개</p>
                             <p>🚗 번호판: {result.statistics.licensePlateCount}개</p>
                             <p>
-                                📈 평균 신뢰도:{" "}
-                                {(result.statistics.averageConfidence * 100).toFixed(1)}%
+                                📈 평균 신뢰도: {(result.statistics.averageConfidence * 100).toFixed(1)}%
                             </p>
                         </div>
                     </div>
 
-                    {/* 다운로드 버튼 */}
                     <div className="download-buttons">
                         <a
                             href={result.originalDownloadUrl}
@@ -212,6 +235,7 @@ function UploadPage({ onNavigateToList }) {
                         >
                             📥 원본 다운로드
                         </a>
+
                         <a
                             href={result.processedDownloadUrl}
                             target="_blank"
@@ -222,11 +246,9 @@ function UploadPage({ onNavigateToList }) {
                         </a>
                     </div>
 
-                    {/* 버튼 그룹 */}
                     <div className="action-buttons">
-                        <button onClick={handleReset} className="btn-secondary">
-                            🔄 새로 시작
-                        </button>
+                        <button onClick={handleReset} className="btn-secondary">🔄 새로 시작</button>
+
                         {onNavigateToList && (
                             <button onClick={onNavigateToList} className="btn-primary">
                                 📋 내 비디오 보기
@@ -236,11 +258,11 @@ function UploadPage({ onNavigateToList }) {
                 </div>
             )}
 
-            {/* 실패 */}
             {status === "failed" && (
                 <div className="error-section">
                     <h2>❌ 처리 실패</h2>
                     <p>{message}</p>
+
                     <button
                         onClick={() => {
                             setStatus("idle");
@@ -256,4 +278,4 @@ function UploadPage({ onNavigateToList }) {
     );
 }
 
-export default UploadPage;
+export default UploadPage; 
