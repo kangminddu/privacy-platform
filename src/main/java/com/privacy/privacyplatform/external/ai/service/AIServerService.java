@@ -29,7 +29,7 @@ public class AIServerService {
 
         try {
             AIProcessResponse response = webClient.post()
-                    .uri(aiServerUrl + "/process")
+                    .uri(aiServerUrl + "/api/process")
                     .bodyValue(request)
                     .retrieve()
                     .bodyToMono(AIProcessResponse.class)
