@@ -82,7 +82,7 @@ public class DotenvConfig {
             System.out.println("  - AWS_S3_BUCKET: " + dotenv.get("AWS_S3_BUCKET_NAME", "not set"));
             System.out.println("  - GMAIL_USERNAME: " + dotenv.get("GMAIL_USERNAME", "not set"));
             System.out.println("  - KAKAO_CLIENT_ID: " + dotenv.get("KAKAO_CLIENT_ID", "not set"));
-
+            System.out.println("  - FRONTEND_URL: " + dotenv.get("FRONTEND_URL", "http://localhost:3000"));
         } catch (Exception e) {
             System.err.println("⚠️ .env 파일 로드 실패: " + e.getMessage());
             System.err.println("⚠️ 기본값으로 진행합니다.");
