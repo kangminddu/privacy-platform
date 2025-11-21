@@ -74,7 +74,8 @@ public class DotenvConfig {
 
             // ========== Frontend URL ==========
             props.setProperty("FRONTEND_URL",
-                    dotenv.get("FRONTEND_URL", "http://localhost:3000"));
+                    System.getenv().getOrDefault("FRONTEND_URL",
+                            dotenv.get("FRONTEND_URL", "http://localhost:3000")));
             configurer.setProperties(props);
 
             System.out.println("📋 로드된 환경 변수:");
