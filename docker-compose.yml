@@ -28,7 +28,7 @@ services:
     image: mariadb:11.0
     container_name: safe-masking-db
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_ROOT_PASSWORD: 1599
       MYSQL_DATABASE: privacy_platform
       MYSQL_USER: privacy_user
       MYSQL_PASSWORD: 1599
