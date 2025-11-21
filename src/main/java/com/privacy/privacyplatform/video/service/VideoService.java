@@ -88,36 +88,35 @@ public class VideoService {
     @Async
     @Transactional
     public void processVideo(String videoId, ProcessVideoRequest request) {
-        log.info("비디오 처리 시작: videoId={}", videoId);
+        log.info("비디오 처리 시작: videoId={}, options={}", videoId, request.getMaskingOptions());
 
         Video video = videoRepository.findByVideoId(videoId)
                 .orElseThrow(() -> new RuntimeException("Video not found: " + videoId));
 
-        // S3 경로 저장
         video.setS3OriginalPath(request.getS3Key());
         video.setFileSizeBytes(request.getFileSize());
         video.updateStatus(ProcessStatus.PROCESSING);
         videoRepository.save(video);
 
-        // WebSocket: 시작 알림
         sendProgress(videoId, 0, "PROCESSING", "AI 처리 시작");
 
         try {
-            // S3 Download URL 생성
             String downloadUrl = s3Service.generatePresignedDownloadUrl(request.getS3Key());
 
-            // FastAPI 호출
+            // ⭐ 마스킹 옵션 포함
             AIProcessRequest aiRequest = AIProcessRequest.builder()
                     .downloadUrl(downloadUrl)
                     .videoId(videoId)
+                    .maskingOptions(AIProcessRequest.MaskingOptions.builder()
+                            .face(request.getMaskingOptions().getFace())
+                            .licensePlate(request.getMaskingOptions().getLicensePlate())
+                            .object(request.getMaskingOptions().getObject())
+                            .build())
                     .build();
 
             AIProcessResponse aiResponse = aiServerService.processVideo(aiRequest);
 
-            // 처리 결과 저장
             saveProcessingResult(video, aiResponse);
-
-            // WebSocket: 완료 알림
             sendProgress(videoId, 100, "COMPLETED", "처리 완료");
 
             log.info("비디오 처리 완료: videoId={}", videoId);
@@ -132,7 +131,7 @@ public class VideoService {
 
     /**
      * 3. 비디오 결과 조회
-     * ⭐ userId 파라미터 추가 (권한 체크)
+     *  userId 파라미터 추가 (권한 체크)
      */
     public VideoResultResponse getVideoResult(String videoId, String userId) {
         log.info("비디오 조회: videoId={}, userId={}", videoId, userId);
@@ -140,7 +139,7 @@ public class VideoService {
         Video video = videoRepository.findByVideoId(videoId)
                 .orElseThrow(() -> new RuntimeException("Video not found: " + videoId));
 
-        // ⭐ 권한 체크 (본인의 비디오만 조회 가능)
+        //  권한 체크 (본인의 비디오만 조회 가능)
         if (!video.getUser().getUserId().equals(userId)) {
             throw new RuntimeException("본인의 비디오만 조회할 수 있습니다");
         }
@@ -180,7 +179,7 @@ public class VideoService {
     }
 
     /**
-     * ⭐ 4. 내 비디오 목록 조회 (새로 추가!)
+     *  4. 내 비디오 목록 조회 (새로 추가!)
      */
     public List<VideoResultResponse> getMyVideos(String userId) {
         log.info("내 비디오 목록 조회: userId={}", userId);
@@ -226,7 +225,7 @@ public class VideoService {
     }
 
     /**
-     * ⭐ 5. 비디오 삭제 (새로 추가!)
+     *  5. 비디오 삭제 (새로 추가!)
      */
     @Transactional
     public void deleteVideo(String videoId, String userId) {

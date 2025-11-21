@@ -10,6 +10,19 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class ProcessVideoRequest {
-    private String s3Key; // S3에 저장된 파일 경로 (예 : "original/uuid_video.mp4")
-    private Long fileSize; // 파일 크기 (bytes)
+
+    private String s3Key;
+    private Long fileSize;
+
+    private MaskingOptions maskingOptions;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class MaskingOptions {
+        private Boolean face;
+        private Boolean licensePlate;
+        private Boolean object;
+    }
 }
