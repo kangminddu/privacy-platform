@@ -879,35 +879,34 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
-  max-width: 380px; /* 중앙정렬 + 길이 고정 */
+  padding: 14px 20px;
   background-color: #FEE500;
-  color: #000;
+  color: #000000;
   border: none;
   border-radius: 12px;
-  font-size: 1.05rem;
+  font-size: 16px;
   font-weight: 600;
-  padding: 14px 0;
   cursor: pointer;
-  transition: all 0.25s ease;
-  box-shadow: 0 4px 10px rgba(254, 229, 0, 0.4);
+  transition: all 0.2s ease;
 }
 
 .btn-kakao:hover {
-  background-color: #FDD835;
-  transform: translateY(-3px);
-  box-shadow: 0 6px 14px rgba(254, 229, 0, 0.6);
+  background-color: #FDD800;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(254, 229, 0, 0.4);
+}
+
+.kakao-icon-img {
+  width: 24px;
+  height: 24px;
 }
 
 .btn-kakao:active {
   transform: translateY(0);
 }
 
-.kakao-icon {
-  font-size: 1.3rem;
-  line-height: 1;
-}
 
 /* ========== 구분선 ========== */
 .divider {

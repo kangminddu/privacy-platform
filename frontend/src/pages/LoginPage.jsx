@@ -191,7 +191,7 @@ function LoginPage({ onLoginSuccess }) {
                 {/* 카카오 로그인 */}
                 <div className="social-login-section">
                     <button className="btn-kakao" onClick={handleKakaoLogin}>
-                        <span className="kakao-icon">💬</span>
+                        <img src="/src/assets/kakao-icon.png" alt="카카오" className="kakao-icon-img" />
                         카카오로 {isLogin ? '로그인' : '회원가입'}
                     </button>
                 </div>
