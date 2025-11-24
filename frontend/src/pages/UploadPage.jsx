@@ -130,28 +130,35 @@ function UploadPage({ onNavigateToList }) {
             <p>비디오 내 개인정보 자동 마스킹</p>
 
             {/* 🎯 마스킹 옵션 */}
-            <div className="masking-options"
-                 style={{
-                     margin: "20px 0",
-                     padding: "20px",
-                     backgroundColor: "#f5f5f5",
-                     borderRadius: "10px"
-                 }}
-            >
-                <h3 style={{ marginBottom: "15px" }}>🎯 마스킹 옵션 선택</h3>
-                <div style={{ display: "flex", gap: "15px", flexWrap: "wrap" }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "16px" }}>
-                        <input type="checkbox" checked={maskingOptions.face} onChange={() => handleOptionToggle("face")} />
+            {/* 🎯 마스킹 옵션 */}
+            <div className="masking-options">
+                <h3>🎯 마스킹 옵션 선택</h3>
+
+                <div className="masking-options-list">
+                    <label className={`masking-option ${maskingOptions.face ? "checked" : ""}`}>
+                        <input
+                            type="checkbox"
+                            checked={maskingOptions.face}
+                            onChange={() => handleOptionToggle("face")}
+                        />
                         😊 얼굴
                     </label>
 
-                    <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "16px" }}>
-                        <input type="checkbox" checked={maskingOptions.licensePlate} onChange={() => handleOptionToggle("licensePlate")} />
+                    <label className={`masking-option ${maskingOptions.licensePlate ? "checked" : ""}`}>
+                        <input
+                            type="checkbox"
+                            checked={maskingOptions.licensePlate}
+                            onChange={() => handleOptionToggle("licensePlate")}
+                        />
                         🚗 번호판
                     </label>
 
-                    <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "16px" }}>
-                        <input type="checkbox" checked={maskingOptions.object} onChange={() => handleOptionToggle("object")} />
+                    <label className={`masking-option ${maskingOptions.object ? "checked" : ""}`}>
+                        <input
+                            type="checkbox"
+                            checked={maskingOptions.object}
+                            onChange={() => handleOptionToggle("object")}
+                        />
                         📦 객체
                     </label>
                 </div>
