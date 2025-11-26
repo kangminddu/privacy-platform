@@ -24,5 +24,9 @@ public class ProcessVideoRequest {
         private Boolean face;
         private Boolean licensePlate;
         private Boolean object;
+
+        private String objectName;
+
+        private Boolean useAvatar;
     }
 }

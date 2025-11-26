@@ -59,7 +59,7 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
-                        // CORS preflight 요청 허용 - 최우선!
+                        // CORS preflight 요청 허용
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // 인증 없이 접근 가능
                         .requestMatchers(
@@ -67,6 +67,7 @@ public class SecurityConfig {
                                 "/oauth2/**",
                                 "/login/oauth2/**",
                                 "/api/videos/health",
+                                "/api/videos/callback",  // ✅ 추가: AI 서버 콜백
                                 "/actuator/**",
                                 "/ws/**",
                                 "/error"
@@ -74,7 +75,6 @@ public class SecurityConfig {
                         // 나머지는 인증 필요
                         .anyRequest().authenticated()
                 )
-                // OAuth2 로그인 설정
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(authorization -> authorization
                                 .baseUri("/oauth2/authorization"))

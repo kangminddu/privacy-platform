@@ -191,7 +191,9 @@ function LoginPage({ onLoginSuccess }) {
                 {/* 카카오 로그인 */}
                 <div className="social-login-section">
                     <button className="btn-kakao" onClick={handleKakaoLogin}>
-                        <img src="/kakao-icon.png" alt="카카오" className="kakao-icon-img" />
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="#3C1E1E">
+                            <path d="M12 3C6.48 3 2 6.58 2 11c0 2.8 1.86 5.25 4.64 6.64-.15.54-.54 1.96-.62 2.27-.1.38.14.38.3.27.12-.08 1.92-1.3 2.7-1.82.64.09 1.3.14 1.98.14 5.52 0 10-3.58 10-8S17.52 3 12 3z"/>
+                        </svg>
                         카카오로 {isLogin ? '로그인' : '회원가입'}
                     </button>
                 </div>

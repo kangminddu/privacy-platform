@@ -1,10 +1,12 @@
 package com.privacy.privacyplatform.video.controller;
 
+import com.privacy.privacyplatform.external.ai.dto.AICallbackRequest;
 import com.privacy.privacyplatform.user.User;
 import com.privacy.privacyplatform.video.dto.request.InitUploadRequest;
 import com.privacy.privacyplatform.video.dto.request.ProcessVideoRequest;
 import com.privacy.privacyplatform.video.dto.response.InitUploadResponse;
 import com.privacy.privacyplatform.video.dto.response.VideoResultResponse;
+import com.privacy.privacyplatform.video.dto.response.VideoStatusResponse;
 import com.privacy.privacyplatform.video.service.VideoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,6 +51,29 @@ public class VideoController {
         log.info("🎬 비디오 처리 시작: videoId={}, userId={}", videoId, user.getUserId());
         videoService.processVideo(videoId, request);
         return ResponseEntity.accepted().build();
+    }
+
+    /**
+     * ✅ 새로 추가: AI 서버 콜백 (인증 불필요 - 내부 통신)
+     */
+    @PostMapping("/callback")
+    public ResponseEntity<Void> handleAiCallback(@RequestBody AICallbackRequest request) {
+        log.info("🤖 AI 콜백 수신: videoId={}", request.getVideoId());
+        videoService.handleAiCallback(request);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * ✅ 새로 추가: 비디오 상태 조회 (폴링용)
+     */
+    @GetMapping("/{videoId}/status")
+    public ResponseEntity<VideoStatusResponse> getVideoStatus(
+            @PathVariable String videoId,
+            Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        log.info("📡 상태 조회: videoId={}, userId={}", videoId, user.getUserId());
+        VideoStatusResponse response = videoService.getVideoStatus(videoId, user.getUserId());
+        return ResponseEntity.ok(response);
     }
 
     /**

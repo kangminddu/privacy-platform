@@ -1,32 +1,30 @@
 package com.privacy.privacyplatform.video.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.privacy.privacyplatform.external.ai.dto.AICallbackRequest;
 import com.privacy.privacyplatform.external.ai.dto.AIProcessRequest;
-import com.privacy.privacyplatform.external.ai.dto.AIProcessResponse;
 import com.privacy.privacyplatform.external.ai.service.AIServerService;
-import com.privacy.privacyplatform.storage.dto.PresignedUploadUrl;
 import com.privacy.privacyplatform.storage.service.S3Service;
 import com.privacy.privacyplatform.video.dto.request.InitUploadRequest;
 import com.privacy.privacyplatform.video.dto.request.ProcessVideoRequest;
 import com.privacy.privacyplatform.video.dto.response.InitUploadResponse;
 import com.privacy.privacyplatform.video.dto.response.VideoResultResponse;
+import com.privacy.privacyplatform.video.dto.response.VideoStatusResponse;
 import com.privacy.privacyplatform.video.entity.Detection;
 import com.privacy.privacyplatform.video.entity.Video;
 import com.privacy.privacyplatform.video.entity.enums.ObjectType;
 import com.privacy.privacyplatform.video.entity.enums.ProcessStatus;
-import com.privacy.privacyplatform.video.repository.DetectionRepository;
 import com.privacy.privacyplatform.video.repository.VideoRepository;
-import com.privacy.privacyplatform.websocket.dto.ProgressMessage;
 import com.privacy.privacyplatform.user.User;
 import com.privacy.privacyplatform.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,26 +35,24 @@ import java.util.stream.Collectors;
 public class VideoService {
 
     private final VideoRepository videoRepository;
-    private final DetectionRepository detectionRepository;
     private final S3Service s3Service;
     private final AIServerService aiServerService;
-    private final SimpMessagingTemplate messagingTemplate;
     private final ObjectMapper objectMapper;
     private final UserRepository userRepository;
 
+    @Value("${app.callback-url:https://api.safe-masking.cloud/api/videos/callback}")
+    private String callbackUrl;
+
     /**
      * 1. 업로드 URL 생성 (Pre-signed URL)
-     *  userId 파라미터 추가
      */
     @Transactional
     public InitUploadResponse initUpload(InitUploadRequest request, String userId) {
         log.info("업로드 초기화: filename={}, userId={}", request.getFilename(), userId);
 
-        // ⭐ 사용자 조회
         User user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
 
-        // Video 엔티티 생성
         Video video = Video.builder()
                 .user(user)
                 .originalFilename(request.getFilename())
@@ -66,8 +62,7 @@ public class VideoService {
 
         videoRepository.save(video);
 
-        // S3 Upload URL 생성
-        PresignedUploadUrl uploadUrl = s3Service.generatePresignedUploadUrl(
+        var uploadUrl = s3Service.generatePresignedUploadUrl(
                 request.getFilename(),
                 request.getContentType()
         );
@@ -82,8 +77,7 @@ public class VideoService {
     }
 
     /**
-     * 2. 비디오 처리 시작 (비동기)
-     * - 변경 없음 (그대로 유지)
+     * 2. 비디오 처리 시작 (비동기 - AI에 요청만 보내고 끝)
      */
     @Async
     @Transactional
@@ -98,40 +92,103 @@ public class VideoService {
         video.updateStatus(ProcessStatus.PROCESSING);
         videoRepository.save(video);
 
-        sendProgress(videoId, 0, "PROCESSING", "AI 처리 시작");
-
         try {
             String downloadUrl = s3Service.generatePresignedDownloadUrl(request.getS3Key());
 
-            // ⭐ 마스킹 옵션 포함
+            // ✅ 새로운 AI 요청 형식
+            ProcessVideoRequest.MaskingOptions opts = request.getMaskingOptions();
+
             AIProcessRequest aiRequest = AIProcessRequest.builder()
                     .downloadUrl(downloadUrl)
                     .videoId(videoId)
+                    .callbackUrl(callbackUrl)
                     .maskingOptions(AIProcessRequest.MaskingOptions.builder()
-                            .face(request.getMaskingOptions().getFace())
-                            .licensePlate(request.getMaskingOptions().getLicensePlate())
-                            .object(request.getMaskingOptions().getObject())
+                            .face(opts.getFace())
+                            .licensePlate(opts.getLicensePlate())
+                            .customObject(opts.getObject())
+                            .customObjectName(opts.getObjectName())
+                            .maskingOption_blur(!Boolean.TRUE.equals(opts.getUseAvatar()))
+                            .maskingOption_swap(Boolean.TRUE.equals(opts.getUseAvatar()))
                             .build())
                     .build();
 
-            AIProcessResponse aiResponse = aiServerService.processVideo(aiRequest);
+            // ✅ AI 서버에 요청만 보내고 응답 기다리지 않음
+            aiServerService.sendProcessRequest(aiRequest);
 
-            saveProcessingResult(video, aiResponse);
-            sendProgress(videoId, 100, "COMPLETED", "처리 완료");
-
-            log.info("비디오 처리 완료: videoId={}", videoId);
+            log.info("AI 서버에 처리 요청 전송 완료: videoId={}", videoId);
 
         } catch (Exception e) {
-            log.error("비디오 처리 실패: videoId={}", videoId, e);
+            log.error("AI 서버 요청 실패: videoId={}", videoId, e);
             video.updateStatus(ProcessStatus.FAILED);
             videoRepository.save(video);
-            sendProgress(videoId, 0, "FAILED", "처리 실패: " + e.getMessage());
         }
     }
 
     /**
-     * 3. 비디오 결과 조회
-     *  userId 파라미터 추가 (권한 체크)
+     * ✅ 3. AI 콜백 처리 (새로 추가)
+     */
+    @Transactional
+    public void handleAiCallback(AICallbackRequest request) {
+        log.info("AI 콜백 수신: videoId={}", request.getVideoId());
+
+        Video video = videoRepository.findByVideoId(request.getVideoId())
+                .orElseThrow(() -> new RuntimeException("Video not found: " + request.getVideoId()));
+
+        // 처리 결과 저장
+        video.setS3ProcessedPath(request.getMaskedUrl());
+        video.setFrameCount(request.getFrameCount());
+        video.setProcessingTimeMs(request.getProcessingTimeMs());
+        video.updateStatus(ProcessStatus.COMPLETED);
+
+        // 탐지 결과 저장
+        if (request.getDetections() != null) {
+            for (AICallbackRequest.DetectionResult item : request.getDetections()) {
+                Detection detection = Detection.builder()
+                        .video(video)
+                        .classId(item.getClassId())
+                        .label(item.getLabel())
+                        .objectType(labelToObjectType(item.getLabel()))
+                        .confidence(item.getConfidence())
+                        .boundingBox(convertBboxToJson(item.getBbox()))
+                        .frameNumber(item.getFrameNumber())
+                        .maskingApplied(true)
+                        .build();
+
+                video.addDetection(detection);
+            }
+        }
+
+        videoRepository.save(video);
+        log.info("AI 콜백 처리 완료: videoId={}", request.getVideoId());
+    }
+
+    /**
+     * ✅ 4. 비디오 상태 조회 (폴링용, 새로 추가)
+     */
+    public VideoStatusResponse getVideoStatus(String videoId, String userId) {
+        Video video = videoRepository.findByVideoId(videoId)
+                .orElseThrow(() -> new RuntimeException("Video not found: " + videoId));
+
+        if (!video.getUser().getUserId().equals(userId)) {
+            throw new RuntimeException("본인의 비디오만 조회할 수 있습니다");
+        }
+
+        String message = switch (video.getStatus()) {
+            case UPLOADED -> "업로드 완료";
+            case PROCESSING -> "AI 처리 중...";
+            case COMPLETED -> "처리 완료";
+            case FAILED -> "처리 실패";
+        };
+
+        return VideoStatusResponse.builder()
+                .videoId(video.getVideoId())
+                .status(video.getStatus())
+                .message(message)
+                .build();
+    }
+
+    /**
+     * 5. 비디오 결과 조회
      */
     public VideoResultResponse getVideoResult(String videoId, String userId) {
         log.info("비디오 조회: videoId={}, userId={}", videoId, userId);
@@ -139,47 +196,15 @@ public class VideoService {
         Video video = videoRepository.findByVideoId(videoId)
                 .orElseThrow(() -> new RuntimeException("Video not found: " + videoId));
 
-        //  권한 체크 (본인의 비디오만 조회 가능)
         if (!video.getUser().getUserId().equals(userId)) {
             throw new RuntimeException("본인의 비디오만 조회할 수 있습니다");
         }
 
-        // Download URL 생성
-        String originalUrl = video.getS3OriginalPath() != null
-                ? s3Service.generatePresignedDownloadUrl(video.getS3OriginalPath())
-                : null;
-
-        String processedUrl = video.getS3ProcessedPath() != null
-                ? s3Service.generatePresignedDownloadUrl(video.getS3ProcessedPath())
-                : null;
-
-        // 탐지 결과 변환
-        List<VideoResultResponse.DetectionDto> detectionDtos = video.getDetections().stream()
-                .map(this::convertToDetectionDto)
-                .collect(Collectors.toList());
-
-        // 통계 계산
-        VideoResultResponse.DetectionStatistics statistics = calculateStatistics(video.getDetections());
-
-        return VideoResultResponse.builder()
-                .videoId(video.getVideoId())
-                .originalFilename(video.getOriginalFilename())
-                .status(video.getStatus())
-                .originalDownloadUrl(originalUrl)
-                .processedDownloadUrl(processedUrl)
-                .fileSizeBytes(video.getFileSizeBytes())
-                .durationSeconds(video.getDurationSeconds())
-                .frameCount(video.getFrameCount())
-                .fps(video.getFps())
-                .detections(detectionDtos)
-                .statistics(statistics)
-                .uploadedAt(video.getUploadedAt())
-                .processedAt(video.getProcessedAt())
-                .build();
+        return buildVideoResultResponse(video);
     }
 
     /**
-     *  4. 내 비디오 목록 조회 (새로 추가!)
+     * 6. 내 비디오 목록 조회
      */
     public List<VideoResultResponse> getMyVideos(String userId) {
         log.info("내 비디오 목록 조회: userId={}", userId);
@@ -190,42 +215,12 @@ public class VideoService {
         List<Video> videos = videoRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
 
         return videos.stream()
-                .map(video -> {
-                    String originalUrl = video.getS3OriginalPath() != null
-                            ? s3Service.generatePresignedDownloadUrl(video.getS3OriginalPath())
-                            : null;
-
-                    String processedUrl = video.getS3ProcessedPath() != null
-                            ? s3Service.generatePresignedDownloadUrl(video.getS3ProcessedPath())
-                            : null;
-
-                    List<VideoResultResponse.DetectionDto> detectionDtos = video.getDetections().stream()
-                            .map(this::convertToDetectionDto)
-                            .collect(Collectors.toList());
-
-                    VideoResultResponse.DetectionStatistics statistics = calculateStatistics(video.getDetections());
-
-                    return VideoResultResponse.builder()
-                            .videoId(video.getVideoId())
-                            .originalFilename(video.getOriginalFilename())
-                            .status(video.getStatus())
-                            .originalDownloadUrl(originalUrl)
-                            .processedDownloadUrl(processedUrl)
-                            .fileSizeBytes(video.getFileSizeBytes())
-                            .durationSeconds(video.getDurationSeconds())
-                            .frameCount(video.getFrameCount())
-                            .fps(video.getFps())
-                            .detections(detectionDtos)
-                            .statistics(statistics)
-                            .uploadedAt(video.getUploadedAt())
-                            .processedAt(video.getProcessedAt())
-                            .build();
-                })
+                .map(this::buildVideoResultResponse)
                 .collect(Collectors.toList());
     }
 
     /**
-     *  5. 비디오 삭제 (새로 추가!)
+     * 7. 비디오 삭제
      */
     @Transactional
     public void deleteVideo(String videoId, String userId) {
@@ -234,12 +229,10 @@ public class VideoService {
         Video video = videoRepository.findByVideoId(videoId)
                 .orElseThrow(() -> new RuntimeException("Video not found: " + videoId));
 
-        // 권한 체크
         if (!video.getUser().getUserId().equals(userId)) {
             throw new RuntimeException("본인의 비디오만 삭제할 수 있습니다");
         }
 
-        // S3에서 삭제
         if (video.getS3OriginalPath() != null) {
             s3Service.deleteFile(video.getS3OriginalPath());
         }
@@ -247,55 +240,44 @@ public class VideoService {
             s3Service.deleteFile(video.getS3ProcessedPath());
         }
 
-        // DB에서 삭제
         videoRepository.delete(video);
         log.info("비디오 삭제 완료: videoId={}", videoId);
     }
 
-    // ============== 아래는 기존 메서드 그대로 유지 ==============
+    // ============== Helper 메서드 ==============
 
     /**
-     * AI 처리 결과 저장
+     * Video → VideoResultResponse 변환
      */
-    private void saveProcessingResult(Video video, AIProcessResponse response) {
-        video.setS3ProcessedPath(response.getProcessedPath());
-        video.setFrameCount(response.getFrameCount());
-        video.setDurationSeconds(response.getDurationSeconds());
-        video.setFps(response.getFps());
-        video.updateStatus(ProcessStatus.COMPLETED);
+    private VideoResultResponse buildVideoResultResponse(Video video) {
+        String originalUrl = video.getS3OriginalPath() != null
+                ? s3Service.generatePresignedDownloadUrl(video.getS3OriginalPath())
+                : null;
 
-        if (response.getDetections() != null) {
-            for (AIProcessResponse.DetectionResult aiDetection : response.getDetections()) {
-                Detection detection = Detection.builder()
-                        .video(video)
-                        .objectType(ObjectType.valueOf(aiDetection.getObjectType()))
-                        .confidence(aiDetection.getConfidence())
-                        .boundingBox(convertBoundingBoxToJson(aiDetection.getBoundingBox()))
-                        .frameNumber(aiDetection.getFrameNumber())
-                        .timestampMs(aiDetection.getTimestampMs())
-                        .maskingApplied(true)
-                        .build();
+        String processedUrl = video.getS3ProcessedPath() != null
+                ? s3Service.generatePresignedDownloadUrl(video.getS3ProcessedPath())
+                : null;
 
-                video.addDetection(detection);
-            }
-        }
+        List<VideoResultResponse.DetectionDto> detectionDtos = video.getDetections().stream()
+                .map(this::convertToDetectionDto)
+                .collect(Collectors.toList());
 
-        videoRepository.save(video);
-    }
+        VideoResultResponse.DetectionStatistics statistics = calculateStatistics(video.getDetections());
 
-    /**
-     * WebSocket으로 진행 상황 전송
-     */
-    private void sendProgress(String videoId, int percentage, String status, String message) {
-        ProgressMessage progress = ProgressMessage.builder()
-                .videoId(videoId)
-                .percentage(percentage)
-                .status(status)
-                .message(message)
-                .timestamp(LocalDateTime.now())
+        return VideoResultResponse.builder()
+                .videoId(video.getVideoId())
+                .originalFilename(video.getOriginalFilename())
+                .status(video.getStatus())
+                .originalDownloadUrl(originalUrl)
+                .processedDownloadUrl(processedUrl)
+                .fileSizeBytes(video.getFileSizeBytes())
+                .frameCount(video.getFrameCount())
+                .processingTimeMs(video.getProcessingTimeMs())
+                .detections(detectionDtos)
+                .statistics(statistics)
+                .uploadedAt(video.getUploadedAt())
+                .processedAt(video.getProcessedAt())
                 .build();
-
-        messagingTemplate.convertAndSend("/topic/progress/" + videoId, progress);
     }
 
     /**
@@ -304,9 +286,11 @@ public class VideoService {
     private VideoResultResponse.DetectionDto convertToDetectionDto(Detection detection) {
         return VideoResultResponse.DetectionDto.builder()
                 .id(detection.getId())
+                .classId(detection.getClassId())
+                .label(detection.getLabel())
                 .objectType(detection.getObjectType().name())
                 .confidence(detection.getConfidence())
-                .boundingBox(parseBoundingBox(detection.getBoundingBox()))
+                .bbox(parseBbox(detection.getBoundingBox()))
                 .frameNumber(detection.getFrameNumber())
                 .timestampMs(detection.getTimestampMs())
                 .maskingApplied(detection.getMaskingApplied())
@@ -314,25 +298,39 @@ public class VideoService {
     }
 
     /**
-     * Bounding Box JSON 파싱
+     * Label → ObjectType 변환
      */
-    private VideoResultResponse.BoundingBox parseBoundingBox(String json) {
+    private ObjectType labelToObjectType(String label) {
+        if (label == null) return ObjectType.CUSTOM_OBJECT;
+
+        return switch (label.toLowerCase()) {
+            case "human head", "face" -> ObjectType.FACE;
+            case "license plate" -> ObjectType.LICENSE_PLATE;
+            default -> ObjectType.CUSTOM_OBJECT;
+        };
+    }
+
+    /**
+     * Bbox List → JSON 문자열
+     */
+    private String convertBboxToJson(List<Integer> bbox) {
         try {
-            return objectMapper.readValue(json, VideoResultResponse.BoundingBox.class);
-        } catch (Exception e) {
-            log.error("Bounding Box 파싱 실패", e);
+            return objectMapper.writeValueAsString(bbox);
+        } catch (JsonProcessingException e) {
+            log.error("Bbox 변환 실패", e);
             return null;
         }
     }
 
     /**
-     * Bounding Box 객체 → JSON 문자열
+     * JSON 문자열 → Bbox List
      */
-    private String convertBoundingBoxToJson(AIProcessResponse.BoundingBox bbox) {
+    private List<Integer> parseBbox(String json) {
         try {
-            return objectMapper.writeValueAsString(bbox);
+            return objectMapper.readValue(json,
+                    objectMapper.getTypeFactory().constructCollectionType(List.class, Integer.class));
         } catch (Exception e) {
-            log.error("Bounding Box 변환 실패", e);
+            log.error("Bbox 파싱 실패", e);
             return null;
         }
     }
@@ -346,6 +344,7 @@ public class VideoService {
                     .totalDetections(0L)
                     .faceCount(0L)
                     .licensePlateCount(0L)
+                    .customObjectCount(0L)
                     .averageConfidence(0.0f)
                     .build();
         }
@@ -358,6 +357,10 @@ public class VideoService {
                 .filter(d -> d.getObjectType() == ObjectType.LICENSE_PLATE)
                 .count();
 
+        long customObjectCount = detections.stream()
+                .filter(d -> d.getObjectType() == ObjectType.CUSTOM_OBJECT)
+                .count();
+
         float averageConfidence = (float) detections.stream()
                 .mapToDouble(Detection::getConfidence)
                 .average()
@@ -367,6 +370,7 @@ public class VideoService {
                 .totalDetections((long) detections.size())
                 .faceCount(faceCount)
                 .licensePlateCount(licensePlateCount)
+                .customObjectCount(customObjectCount)
                 .averageConfidence(averageConfidence)
                 .build();
     }

@@ -119,7 +119,10 @@ export const videoAPI = {
                 maskingOptions: {
                     face: maskingOptions.face,
                     licensePlate: maskingOptions.licensePlate,
-                    object: maskingOptions.object
+                    object: maskingOptions.object,
+                    objectName: maskingOptions.objectName,
+                    // 아바타 변환 여부 전송
+                    useAvatar: maskingOptions.useAvatar
                 }
             },
             {

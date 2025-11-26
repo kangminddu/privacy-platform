@@ -1,13 +1,11 @@
 package com.privacy.privacyplatform.external.ai.service;
 
 import com.privacy.privacyplatform.external.ai.dto.AIProcessRequest;
-import com.privacy.privacyplatform.external.ai.dto.AIProcessResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 
@@ -19,33 +17,23 @@ public class AIServerService {
     private final WebClient webClient;
 
     @Value("${ai.server.url}")
-    private String aiServerUrl;  // http://localhost:5001
+    private String aiServerUrl;
 
     /**
-     * FastAPI에 비디오 처리 요청
+     * ✅ AI 서버에 처리 요청 전송 (비동기 - 응답 안 기다림)
      */
-    public AIProcessResponse processVideo(AIProcessRequest request) {
-        log.info("AI 서버 호출: videoId={}", request.getVideoId());
+    public void sendProcessRequest(AIProcessRequest request) {
+        log.info("AI 서버에 요청 전송: videoId={}", request.getVideoId());
 
-        try {
-            AIProcessResponse response = webClient.post()
-                    .uri(aiServerUrl + "/api/process")
-                    .bodyValue(request)
-                    .retrieve()
-                    .bodyToMono(AIProcessResponse.class)
-                    .timeout(Duration.ofMinutes(30))  // 30분 타임아웃
-                    .block();
-
-            log.info("AI 처리 완료: videoId={}, detections={}",
-                    response.getVideoId(),
-                    response.getDetections().size());
-
-            return response;
-
-        } catch (Exception e) {
-            log.error("AI 서버 호출 실패: videoId={}", request.getVideoId(), e);
-            throw new RuntimeException("AI 서버 호출 실패", e);
-        }
+        webClient.post()
+                .uri(aiServerUrl + "/api/process")
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(Void.class)
+                .timeout(Duration.ofSeconds(30))
+                .doOnSuccess(v -> log.info("AI 서버 요청 전송 성공: videoId={}", request.getVideoId()))
+                .doOnError(e -> log.error("AI 서버 요청 전송 실패: videoId={}", request.getVideoId(), e))
+                .subscribe();  // ✅ 응답 기다리지 않음!
     }
 
     /**

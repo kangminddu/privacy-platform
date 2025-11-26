@@ -24,15 +24,23 @@ public class Detection {
     @JoinColumn(name = "video_id", nullable = false)
     private Video video;
 
+    // ✅ 추가: 객체별 고유 ID
+    @Column(name = "class_id")
+    private Integer classId;
+
+    // ✅ 추가: 탐지된 객체 라벨
+    @Column(name = "label", length = 100)
+    private String label;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "object_type", nullable = false, length = 30)
     private ObjectType objectType;
 
     @Column(name = "confidence", nullable = false)
-    private Float confidence;  // 0.0 ~ 1.0
+    private Float confidence;
 
     @Column(name = "bounding_box", columnDefinition = "TEXT")
-    private String boundingBox;  // JSON: {"x": 100, "y": 200, "width": 50, "height": 50}
+    private String boundingBox;  // JSON: [x1, x2, y1, y2]
 
     @Column(name = "frame_number")
     private Integer frameNumber;

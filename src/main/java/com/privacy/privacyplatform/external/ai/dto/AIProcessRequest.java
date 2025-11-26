@@ -11,8 +11,10 @@ import lombok.NoArgsConstructor;
 @Builder
 public class AIProcessRequest {
 
-    private String downloadUrl; // S3 Pre-signed Download URL
-    private String videoId; // 비디오 ID
+    private String downloadUrl;
+    private String videoId;
+
+    private String callbackUrl;
 
     private MaskingOptions maskingOptions;
 
@@ -21,8 +23,17 @@ public class AIProcessRequest {
     @AllArgsConstructor
     @Builder
     public static class MaskingOptions {
-        private Boolean face;         // 얼굴 마스킹 여부
-        private Boolean licensePlate; // 번호판 마스킹 여부
-        private Boolean object;       // 객체 마스킹 여부
+        private Boolean face;
+        private Boolean licensePlate;
+
+        private Boolean customObject;
+
+        private String customObjectName;
+
+        @Builder.Default
+        private Boolean maskingOption_blur = true;
+
+        @Builder.Default
+        private Boolean maskingOption_swap = false;
     }
 }
