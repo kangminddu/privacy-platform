@@ -1,13 +1,12 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { videoAPI } from "../services/api";
-import { WebSocketService } from "../services/websocket";
-// ✨ 아이콘 추가 (모자이크, 아바타용 아이콘)
+// ✅ WebSocketService import 제거
 import {
     RiUserSmileLine,
     RiCarLine,
     RiFocus3Line,
-    RiBlurOffLine,   // 모자이크 아이콘
-    RiRobot2Line     // 아바타 아이콘
+    RiBlurOffLine,
+    RiRobot2Line
 } from "react-icons/ri";
 import "../App.css";
 
@@ -15,15 +14,14 @@ function UploadPage({ onNavigateToList }) {
     const [file, setFile] = useState(null);
     const [videoId, setVideoId] = useState(null);
     const [uploadProgress, setUploadProgress] = useState(0);
-    const [processProgress, setProcessProgress] = useState(0);
+    // ✅ processProgress 제거 (스피너로 대체)
     const [status, setStatus] = useState("idle");
     const [message, setMessage] = useState("");
     const [result, setResult] = useState(null);
 
     const fileInputRef = useRef(null);
-    const wsService = useRef(null);
+    const pollingRef = useRef(null);  // ✅ WebSocket → 폴링으로 변경
 
-    // ✨ [추가] 처리 방식 상태 (false: 모자이크, true: 아바타)
     const [isAvatarMode, setIsAvatarMode] = useState(false);
 
     const [maskingOptions, setMaskingOptions] = useState({
@@ -33,7 +31,37 @@ function UploadPage({ onNavigateToList }) {
         objectName: ""
     });
 
-    // 파일 선택
+    // ✅ 컴포넌트 언마운트 시 폴링 정리
+    useEffect(() => {
+        return () => {
+            if (pollingRef.current) {
+                clearInterval(pollingRef.current);
+            }
+        };
+    }, []);
+
+    // ✅ 상태 폴링 함수 (새로 추가)
+    const startPolling = (vid) => {
+        pollingRef.current = setInterval(async () => {
+            try {
+                const statusData = await videoAPI.getStatus(vid);
+                setMessage(statusData.message);
+
+                if (statusData.status === "COMPLETED") {
+                    clearInterval(pollingRef.current);
+                    setStatus("completed");
+                    loadResult(vid);
+                } else if (statusData.status === "FAILED") {
+                    clearInterval(pollingRef.current);
+                    setStatus("failed");
+                    setMessage("처리 실패");
+                }
+            } catch (error) {
+                console.error("상태 조회 실패:", error);
+            }
+        }, 3000);  // 3초마다 폴링
+    };
+
     const handleFileSelect = (e) => {
         const selectedFile = e.target.files[0];
         if (selectedFile && selectedFile.type.startsWith("video/")) {
@@ -79,30 +107,20 @@ function UploadPage({ onNavigateToList }) {
             setMessage("파일 업로드 중...");
             await videoAPI.uploadToS3(uploadUrl, file, setUploadProgress);
 
-            wsService.current = new WebSocketService();
-            await wsService.current.connect(newVideoId, (progress) => {
-                setProcessProgress(progress.percentage);
-                setMessage(progress.message);
-
-                if (progress.status === "COMPLETED") {
-                    setStatus("completed");
-                    loadResult(newVideoId);
-                } else if (progress.status === "FAILED") {
-                    setStatus("failed");
-                    setMessage("처리 실패: " + progress.message);
-                }
-            });
-
+            // ✅ WebSocket 제거, 바로 처리 시작
             setStatus("processing");
+            setMessage("AI 처리 중...");
 
-            // ✨ [수정] API 호출 시 isAvatarMode (true/false) 추가 전송
             await videoAPI.processVideo(newVideoId, s3Key, file.size, {
                 face: maskingOptions.face,
                 licensePlate: maskingOptions.licensePlate,
                 object: maskingOptions.object,
                 objectName: maskingOptions.objectName.trim(),
-                useAvatar: isAvatarMode // 여기가 추가된 부분!
+                useAvatar: isAvatarMode
             });
+
+            // ✅ 폴링 시작 (WebSocket 대신)
+            startPolling(newVideoId);
 
         } catch (error) {
             setStatus("failed");
@@ -125,9 +143,8 @@ function UploadPage({ onNavigateToList }) {
         setStatus("idle");
         setResult(null);
         setUploadProgress(0);
-        setProcessProgress(0);
         setMessage("");
-        setIsAvatarMode(false); // 리셋 시 모자이크로 초기화
+        setIsAvatarMode(false);
 
         setMaskingOptions({
             face: true,
@@ -136,20 +153,22 @@ function UploadPage({ onNavigateToList }) {
             objectName: ""
         });
 
-        wsService.current?.disconnect();
+        // ✅ WebSocket → 폴링 정리로 변경
+        if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+        }
     };
 
     return (
         <div className="upload-page-container">
 
-            {/* ✨ 1. 처리 방식 선택 섹션 (새로 추가됨) */}
+            {/* 1. 처리 방식 선택 섹션 */}
             <div className="section-card masking-section" style={{ marginBottom: '20px' }}>
                 <div className="section-header">
                     <h3>🎨 처리 방식 선택</h3>
                     <p>개인정보를 어떻게 가릴지 선택하세요.</p>
                 </div>
                 <div className="masking-grid">
-                    {/* 모자이크 선택 */}
                     <div
                         className={`masking-card ${!isAvatarMode ? "active" : ""}`}
                         onClick={() => setIsAvatarMode(false)}
@@ -159,7 +178,6 @@ function UploadPage({ onNavigateToList }) {
                         <div className="checkbox-indicator"></div>
                     </div>
 
-                    {/* 아바타 선택 */}
                     <div
                         className={`masking-card ${isAvatarMode ? "active" : ""}`}
                         onClick={() => setIsAvatarMode(true)}
@@ -179,7 +197,6 @@ function UploadPage({ onNavigateToList }) {
                 </div>
 
                 <div className="masking-grid">
-                    {/* 얼굴 */}
                     <div
                         className={`masking-card ${maskingOptions.face ? "active" : ""}`}
                         onClick={() => toggleOption("face")}
@@ -189,7 +206,6 @@ function UploadPage({ onNavigateToList }) {
                         <div className="checkbox-indicator"></div>
                     </div>
 
-                    {/* 번호판 */}
                     <div
                         className={`masking-card ${maskingOptions.licensePlate ? "active" : ""}`}
                         onClick={() => toggleOption("licensePlate")}
@@ -199,7 +215,6 @@ function UploadPage({ onNavigateToList }) {
                         <div className="checkbox-indicator"></div>
                     </div>
 
-                    {/* 기타 + 입력칸 */}
                     <div
                         className={`masking-card custom-card ${maskingOptions.object ? "active" : ""}`}
                         onClick={() => toggleOption("object")}
@@ -287,16 +302,14 @@ function UploadPage({ onNavigateToList }) {
                         </div>
                     )}
 
+                    {/* ✅ 처리 중: 진행률 바 → 스피너로 변경 */}
                     {status === "processing" && (
                         <div className="progress-container processing-mode">
-                            <div className="progress-header">
-                                <span>AI 영상 분석 및 마스킹 중...</span>
-                                <span>{processProgress}%</span>
+                            <div className="spinner-container">
+                                <div className="spinner"></div>
                             </div>
-                            <div className="progress-track">
-                                <div className="progress-bar-fill processing" style={{ width: `${processProgress}%` }} />
-                            </div>
-                            <p className="status-message">💡 {message}</p>
+                            <p className="status-message">🤖 {message}</p>
+                            <p className="status-sub">잠시만 기다려주세요...</p>
                         </div>
                     )}
 
@@ -327,20 +340,33 @@ function UploadPage({ onNavigateToList }) {
                     <div className="stats-grid">
                         <div className="stat-item total">
                             <span className="stat-label">총 탐지 객체</span>
-                            <span className="stat-value">{result.statistics.totalDetections}</span>
+                            <span className="stat-value">{result.statistics?.totalDetections || 0}</span>
                         </div>
                         <div className="stat-item">
                             <span className="stat-label">🙂 얼굴</span>
-                            <span className="stat-value">{result.statistics.faceCount}</span>
+                            <span className="stat-value">{result.statistics?.faceCount || 0}</span>
                         </div>
                         <div className="stat-item">
                             <span className="stat-label">🚗 번호판</span>
-                            <span className="stat-value">{result.statistics.licensePlateCount}</span>
+                            <span className="stat-value">{result.statistics?.licensePlateCount || 0}</span>
                         </div>
                         <div className="stat-item">
                             <span className="stat-label">📈 정확도</span>
-                            <span className="stat-value">{(result.statistics.averageConfidence * 100).toFixed(1)}%</span>
+                            <span className="stat-value">
+                                {result.statistics?.averageConfidence
+                                    ? (result.statistics.averageConfidence * 100).toFixed(1) + '%'
+                                    : '0%'}
+                            </span>
                         </div>
+                        {/* ✅ 처리 시간 추가 */}
+                        {result.processingTimeMs && (
+                            <div className="stat-item">
+                                <span className="stat-label">⏱️ 처리 시간</span>
+                                <span className="stat-value">
+                                    {(result.processingTimeMs / 1000).toFixed(1)}초
+                                </span>
+                            </div>
+                        )}
                     </div>
 
                     <div className="download-actions">

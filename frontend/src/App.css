@@ -296,3 +296,30 @@ body {
   .stat-item.total { grid-column: span 1; }
   .modal-actions { flex-direction: column; }
 }
+
+/* ========== 스피너 (AI 처리 중) ========== */
+.spinner-container {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e2e8f0;
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.status-sub {
+  text-align: center;
+  color: var(--text-sub);
+  font-size: 0.9rem;
+  margin-top: 8px;
+}
