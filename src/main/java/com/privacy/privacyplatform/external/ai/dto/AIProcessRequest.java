@@ -13,7 +13,7 @@ public class AIProcessRequest {
 
     private String downloadUrl;
     private String videoId;
-
+    private String uploadUrl;
     private String callbackUrl;
 
     private MaskingOptions maskingOptions;

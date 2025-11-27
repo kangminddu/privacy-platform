@@ -95,11 +95,15 @@ public class VideoService {
         try {
             String downloadUrl = s3Service.generatePresignedDownloadUrl(request.getS3Key());
 
-            // ✅ 새로운 AI 요청 형식
+            String processedS3Key = "processed/masked_" + videoId + ".mp4";
+            String uploadUrl = s3Service.generatePresignedUploadUrl(processedS3Key, "video/mp4").getUrl();
+            video.setS3ProcessedPath(processedS3Key);
+            videoRepository.save(video);
             ProcessVideoRequest.MaskingOptions opts = request.getMaskingOptions();
 
             AIProcessRequest aiRequest = AIProcessRequest.builder()
                     .downloadUrl(downloadUrl)
+                    .uploadUrl(uploadUrl)
                     .videoId(videoId)
                     .callbackUrl(callbackUrl)
                     .maskingOptions(AIProcessRequest.MaskingOptions.builder()
@@ -112,7 +116,6 @@ public class VideoService {
                             .build())
                     .build();
 
-            // ✅ AI 서버에 요청만 보내고 응답 기다리지 않음
             aiServerService.sendProcessRequest(aiRequest);
 
             log.info("AI 서버에 처리 요청 전송 완료: videoId={}", videoId);
@@ -124,9 +127,6 @@ public class VideoService {
         }
     }
 
-    /**
-     * ✅ 3. AI 콜백 처리 (새로 추가)
-     */
     @Transactional
     public void handleAiCallback(AICallbackRequest request) {
         log.info("AI 콜백 수신: videoId={}", request.getVideoId());
@@ -134,8 +134,9 @@ public class VideoService {
         Video video = videoRepository.findByVideoId(request.getVideoId())
                 .orElseThrow(() -> new RuntimeException("Video not found: " + request.getVideoId()));
 
-        // 처리 결과 저장
-        video.setS3ProcessedPath(request.getMaskedUrl());
+        // ✅ maskedUrl은 무시 (이미 processVideo에서 s3ProcessedPath 설정됨)
+        // video.setS3ProcessedPath(request.getMaskedUrl());
+
         video.setFrameCount(request.getFrameCount());
         video.setProcessingTimeMs(request.getProcessingTimeMs());
         video.updateStatus(ProcessStatus.COMPLETED);
@@ -163,7 +164,7 @@ public class VideoService {
     }
 
     /**
-     * ✅ 4. 비디오 상태 조회 (폴링용, 새로 추가)
+     *  4. 비디오 상태 조회 (폴링용, 새로 추가)
      */
     public VideoStatusResponse getVideoStatus(String videoId, String userId) {
         Video video = videoRepository.findByVideoId(videoId)
