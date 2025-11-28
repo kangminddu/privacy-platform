@@ -96,7 +96,7 @@ public class VideoService {
             String downloadUrl = s3Service.generatePresignedDownloadUrl(request.getS3Key());
 
             String processedS3Key = "processed/masked_" + videoId + ".mp4";
-            String uploadUrl = s3Service.generatePresignedUploadUrl(processedS3Key, "video/mp4").getUrl();
+            String uploadUrl = s3Service.generatePresignedUploadUrlWithKey(processedS3Key, "video/mp4").getUrl();
             video.setS3ProcessedPath(processedS3Key);
             videoRepository.save(video);
             ProcessVideoRequest.MaskingOptions opts = request.getMaskingOptions();

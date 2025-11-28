@@ -34,20 +34,17 @@ public class S3Service {
     }
 
     /**
-     * Pre-signed Upload URL 생성 (클라이언트가 S3에 직접 업로드)
+     * Pre-signed Upload URL 생성 (클라이언트가 S3에 직접 업로드 - original/ 경로)
      */
     public PresignedUploadUrl generatePresignedUploadUrl(String filename, String contentType) {
-        // S3 키 생성: original/uuid_filename.mp4
         String s3Key = "original/" + UUID.randomUUID() + "_" + filename;
 
-        // PutObjectRequest 생성
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(s3Key)
                 .contentType(contentType)
                 .build();
 
-        // Pre-signed URL 생성 (10분 유효)
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
                 .signatureDuration(Duration.ofMinutes(10))
                 .putObjectRequest(putObjectRequest)
@@ -64,6 +61,31 @@ public class S3Service {
     }
 
     /**
+     * Pre-signed Upload URL 생성 (S3 키 직접 지정 - AI 서버용)
+     */
+    public PresignedUploadUrl generatePresignedUploadUrlWithKey(String s3Key, String contentType) {
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(s3Key)
+                .contentType(contentType)
+                .build();
+
+        PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
+                .signatureDuration(Duration.ofMinutes(30))  // AI 처리 시간 고려해서 30분
+                .putObjectRequest(putObjectRequest)
+                .build();
+
+        PresignedPutObjectRequest presignedRequest = s3Presigner.presignPutObject(presignRequest);
+
+        log.info("Pre-signed Upload URL 생성 (직접 키): {}", s3Key);
+
+        return PresignedUploadUrl.builder()
+                .url(presignedRequest.url().toString())
+                .s3Key(s3Key)
+                .build();
+    }
+
+    /**
      * Pre-signed Download URL 생성 (클라이언트가 S3에서 직접 다운로드)
      */
     public String generatePresignedDownloadUrl(String s3Key) {
@@ -72,7 +94,6 @@ public class S3Service {
                 .key(s3Key)
                 .build();
 
-        // Pre-signed URL 생성 (10분 유효)
         GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
                 .signatureDuration(Duration.ofMinutes(10))
                 .getObjectRequest(getObjectRequest)
