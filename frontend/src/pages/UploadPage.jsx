@@ -175,16 +175,16 @@ function UploadPage({ onNavigateToList }) {
                             <span className="stat-value">{result.statistics?.totalDetections || 0}</span>
                         </div>
                         <div className="stat-item">
-                            <span className="stat-label">🙂 얼굴</span>
+                            <span className="stat-label"> 얼굴</span>
                             <span className="stat-value">{result.statistics?.faceCount || 0}</span>
                         </div>
                         <div className="stat-item">
-                            <span className="stat-label">🚗 번호판</span>
+                            <span className="stat-label"> 번호판</span>
                             <span className="stat-value">{result.statistics?.licensePlateCount || 0}</span>
                         </div>
                         {result.processingTimeMs && (
                             <div className="stat-item">
-                                <span className="stat-label">⏱️ 처리 시간</span>
+                                <span className="stat-label"> 처리 시간</span>
                                 <span className="stat-value">{(result.processingTimeMs / 1000).toFixed(1)}초</span>
                             </div>
                         )}
@@ -224,7 +224,7 @@ function UploadPage({ onNavigateToList }) {
                     {/* 1. 처리 방식 선택 */}
                     <div className="section-card">
                         <div className="section-header">
-                            <h3>🛠️ 처리 방식 선택</h3>
+                            <h3> 처리 방식 선택</h3>
                             <p>개인정보를 어떻게 가릴지 선택하세요.</p>
                         </div>
                         <div className="masking-grid">
@@ -242,7 +242,7 @@ function UploadPage({ onNavigateToList }) {
                     {/* 2. 마스킹 대상 */}
                     <div className="section-card">
                         <div className="section-header">
-                            <h3>🎯 마스킹 대상</h3>
+                            <h3> 마스킹 대상</h3>
                             <p>영상에서 가리고 싶은 대상을 선택하세요.</p>
                         </div>
                         <div className="masking-grid">
@@ -271,7 +271,7 @@ function UploadPage({ onNavigateToList }) {
                     {/* 3. 업로드 영역 (상태에 따라 디자인 변경) */}
                     <div className="section-card">
                         <div className="section-header">
-                            <h3>📹 비디오 업로드</h3>
+                            <h3> 비디오 업로드</h3>
                             <p>MP4, MOV, AVI 형식 지원</p>
                         </div>
 
@@ -306,7 +306,7 @@ function UploadPage({ onNavigateToList }) {
                                     <input ref={fileInputRef} type="file" accept="video/*" onChange={handleFileSelect} style={{ display: "none" }} />
                                 </div>
                                 <button onClick={handleUpload} className="btn-primary">
-                                    🚀 마스킹 시작하기
+                                     마스킹 시작하기
                                 </button>
                             </div>
                         )}

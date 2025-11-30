@@ -7,11 +7,11 @@ import OAuthCallback from './pages/OAuthCallback';
 import { tokenManager } from './utils/tokenManager';
 import './App.css';
 
-// ✨ 푸터 컴포넌트 (App.jsx 안에 정의)
+//  푸터 컴포넌트 (App.jsx 안에 정의)
 const Footer = () => (
     <footer className="app-footer">
         <div className="footer-content">
-            <div className="footer-logo">🔒 Safe Masking</div>
+            <div className="footer-logo"> Safe Masking</div>
             <div className="footer-links">
                 <span>이용약관</span>
                 <span>개인정보처리방침</span>
@@ -52,11 +52,14 @@ function App() {
     };
 
     const handleLogout = () => {
-        console.log('🚪 로그아웃');
+        console.log(' 로그아웃');
         tokenManager.clearToken();
         setIsAuthenticated(false);
         setUser(null);
         setCurrentPage('upload');
+
+        window.location.href = 'https://kauth.kakao.com/oauth/logout?client_id=48acf5ae09a89b4d7c71d1d5b8ea78f2&logout_redirect_uri=https://safe-masking.vercel.app';
+
     };
 
     // 로딩 화면
@@ -90,7 +93,7 @@ function App() {
                                 <header className="header">
                                     <div className="header-left">
                                         <h2 className="logo" onClick={() => setCurrentPage('upload')}>
-                                            🔒 Safe Masking
+                                             Safe Masking
                                         </h2>
                                         <div className="nav-buttons">
                                             <button

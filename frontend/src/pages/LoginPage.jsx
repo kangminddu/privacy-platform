@@ -163,7 +163,7 @@ function LoginPage({ onLoginSuccess }) {
     return (
         <div className="login-container">
             <div className="login-box">
-                <h1>🔒 Safe Masking</h1>
+                <h1> Safe Masking</h1>
                 <p className="subtitle">비디오 내 개인정보 자동 마스킹</p>
 
                 {/* 탭 */}
@@ -233,7 +233,7 @@ function LoginPage({ onLoginSuccess }) {
                         {error && <div className="error-message">{error}</div>}
 
                         <button type="submit" className="btn-primary" disabled={loading}>
-                            {loading ? '처리 중...' : '🔓 로그인'}
+                            {loading ? '처리 중...' : ' 로그인'}
                         </button>
                     </form>
                 ) : (

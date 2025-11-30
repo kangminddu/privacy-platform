@@ -3,12 +3,12 @@ import { tokenManager } from '../utils/tokenManager';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
-// ✅ axios 인스턴스 생성
+//  axios 인스턴스 생성
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
 });
 
-// ✅ 요청 인터셉터 - 토큰 자동 추가
+//  요청 인터셉터 - 토큰 자동 추가
 apiClient.interceptors.request.use(
     (config) => {
         const token = tokenManager.getToken();
@@ -20,7 +20,7 @@ apiClient.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-// ✅ 응답 인터셉터 - 401 에러 시 자동 갱신
+//  응답 인터셉터 - 401 에러 시 자동 갱신
 apiClient.interceptors.response.use(
     (response) => response,
     async (error) => {
