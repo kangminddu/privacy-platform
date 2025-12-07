@@ -27,7 +27,6 @@ public class VideoResultResponse {
     private Long fileSizeBytes;
     private Integer frameCount;
 
-    // ✅ 추가: AI 처리 시간
     private Integer processingTimeMs;
 
     // 탐지 결과
@@ -48,13 +47,13 @@ public class VideoResultResponse {
     public static class DetectionDto {
         private Long id;
 
-        // ✅ 추가
+        //  추가
         private Integer classId;
         private String label;
 
         private String objectType;
         private Float confidence;
-        private List<Integer> bbox;  // ✅ 변경: [x1, x2, y1, y2]
+        private List<Integer> bbox;  //  변경: [x1, x2, y1, y2]
         private Integer frameNumber;
         private Integer timestampMs;
         private Boolean maskingApplied;
@@ -72,7 +71,6 @@ public class VideoResultResponse {
         private Long faceCount;
         private Long licensePlateCount;
 
-        // ✅ 추가
         private Long customObjectCount;
 
         private Float averageConfidence;

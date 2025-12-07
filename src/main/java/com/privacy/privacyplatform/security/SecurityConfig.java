@@ -2,10 +2,12 @@ package com.privacy.privacyplatform.security;
 
 import com.privacy.privacyplatform.auth.oauth2.CustomOAuth2UserService;
 import com.privacy.privacyplatform.auth.oauth2.OAuth2SuccessHandler;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -59,21 +61,36 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
-                        // CORS preflight 요청 허용
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // 인증 없이 접근 가능
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/oauth2/**",
                                 "/login/oauth2/**",
                                 "/api/videos/health",
-                                "/api/videos/callback",  // ✅ 추가: AI 서버 콜백
+                                "/api/videos/callback",
                                 "/actuator/**",
                                 "/ws/**",
                                 "/error"
                         ).permitAll()
-                        // 나머지는 인증 필요
                         .anyRequest().authenticated()
+                )
+                // API 요청에 대해 401 JSON 응답 반환 (리다이렉트 방지)
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            String uri = request.getRequestURI();
+                            if (uri.startsWith("/api/")) {
+                                // API 요청: 401 JSON 응답
+                                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                                response.setCharacterEncoding("UTF-8");
+                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                                response.getWriter().write(
+                                        "{\"error\":\"Unauthorized\",\"message\":\"JWT token expired or invalid\"}"
+                                );
+                            } else {
+                                // 그 외: 카카오 로그인으로 리다이렉트
+                                response.sendRedirect("/oauth2/authorization/kakao");
+                            }
+                        })
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(authorization -> authorization

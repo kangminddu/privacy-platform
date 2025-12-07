@@ -54,7 +54,7 @@ public class VideoController {
     }
 
     /**
-     * ✅ 새로 추가: AI 서버 콜백 (인증 불필요 - 내부 통신)
+     *  새로 추가: AI 서버 콜백 (인증 불필요 - 내부 통신)
      */
     @PostMapping("/callback")
     public ResponseEntity<Void> handleAiCallback(@RequestBody AICallbackRequest request) {
@@ -64,7 +64,7 @@ public class VideoController {
     }
 
     /**
-     * ✅ 새로 추가: 비디오 상태 조회 (폴링용)
+     *  새로 추가: 비디오 상태 조회 (폴링용)
      */
     @GetMapping("/{videoId}/status")
     public ResponseEntity<VideoStatusResponse> getVideoStatus(
