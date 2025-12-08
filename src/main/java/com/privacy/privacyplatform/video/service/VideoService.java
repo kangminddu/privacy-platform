@@ -134,7 +134,7 @@ public class VideoService {
         Video video = videoRepository.findByVideoId(request.getVideoId())
                 .orElseThrow(() -> new RuntimeException("Video not found: " + request.getVideoId()));
 
-        // ✅ maskedUrl은 무시 (이미 processVideo에서 s3ProcessedPath 설정됨)
+        // maskedUrl은 무시 (이미 processVideo에서 s3ProcessedPath 설정됨)
         // video.setS3ProcessedPath(request.getMaskedUrl());
 
         video.setFrameCount(request.getFrameCount());
