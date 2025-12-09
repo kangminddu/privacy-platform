@@ -71,7 +71,7 @@ public class S3Service {
                 .build();
 
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-                .signatureDuration(Duration.ofMinutes(180))  // AI 처리 시간 고려해서 3시간
+                .signatureDuration(Duration.ofMinutes(360))  // AI 처리 시간 고려해서 6시간
                 .putObjectRequest(putObjectRequest)
                 .build();
 
@@ -95,7 +95,7 @@ public class S3Service {
                 .build();
 
         GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                .signatureDuration(Duration.ofMinutes(30))
+                .signatureDuration(Duration.ofMinutes(60))
                 .getObjectRequest(getObjectRequest)
                 .build();
 
