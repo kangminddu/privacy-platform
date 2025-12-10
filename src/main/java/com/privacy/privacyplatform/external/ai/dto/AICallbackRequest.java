@@ -24,6 +24,7 @@ public class AICallbackRequest {
 
     private Statistics statistics;
 
+
     /**
      * 탐지 결과
      */
@@ -47,10 +48,11 @@ public class AICallbackRequest {
     @AllArgsConstructor
     @Builder
     public static class Statistics {
-        private Integer totalDetections;
+        private Integer totalUniqueObjects;
         private Integer faceCount;
         private Integer licensePlateCount;
         private Integer customObjectCount;
+        private Integer totalDetectionEvents;
         private Float averageConfidence;
     }
 }

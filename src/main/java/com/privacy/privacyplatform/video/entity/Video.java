@@ -52,7 +52,6 @@ public class Video {
     @Column(name = "frame_count")
     private Integer frameCount;
 
-    // ✅ 추가: AI 처리 시간
     @Column(name = "processing_time_ms")
     private Integer processingTimeMs;
 
@@ -69,6 +68,17 @@ public class Video {
     @Column(name = "processed_at")
     private LocalDateTime processedAt;
 
+    @Column(name = "unique_face_count")
+    private Integer uniqueFaceCount;
+
+    @Column(name = "unique_plate_count")
+    private Integer uniquePlateCount;
+
+    @Column(name = "unique_custom_count")
+    private Integer uniqueCustomCount;
+
+    @Column(name = "total_unique_objects")
+    private Integer totalUniqueObjects;
     @PrePersist
     protected void onCreate() {
         this.uploadedAt = LocalDateTime.now();

@@ -140,7 +140,13 @@ public class VideoService {
         video.setFrameCount(request.getFrameCount());
         video.setProcessingTimeMs(request.getProcessingTimeMs());
         video.updateStatus(ProcessStatus.COMPLETED);
-
+        // statistics 저장
+        if (request.getStatistics() != null) {
+            video.setUniqueFaceCount(request.getStatistics().getFaceCount());
+            video.setUniquePlateCount(request.getStatistics().getLicensePlateCount());
+            video.setUniqueCustomCount(request.getStatistics().getCustomObjectCount());
+            video.setTotalUniqueObjects(request.getStatistics().getTotalUniqueObjects());
+        }
         // 탐지 결과 저장
         if (request.getDetections() != null) {
             for (AICallbackRequest.DetectionResult item : request.getDetections()) {
@@ -263,7 +269,13 @@ public class VideoService {
                 .map(this::convertToDetectionDto)
                 .collect(Collectors.toList());
 
-        VideoResultResponse.DetectionStatistics statistics = calculateStatistics(video.getDetections());
+        VideoResultResponse.DetectionStatistics statistics = VideoResultResponse.DetectionStatistics.builder()
+                .totalDetections((long) video.getDetections().size())
+                .faceCount(video.getUniqueFaceCount() != null ? video.getUniqueFaceCount().longValue() : 0L)
+                .licensePlateCount(video.getUniquePlateCount() != null ? video.getUniquePlateCount().longValue() : 0L)
+                .customObjectCount(video.getUniqueCustomCount() != null ? video.getUniqueCustomCount().longValue() : 0L)
+                .averageConfidence(calculateAverageConfidence(video.getDetections()))
+                .build();
 
         return VideoResultResponse.builder()
                 .videoId(video.getVideoId())
@@ -335,7 +347,16 @@ public class VideoService {
             return null;
         }
     }
-
+    /**
+     * 평균 confidence 계산
+     */
+    private float calculateAverageConfidence(List<Detection> detections) {
+        if (detections == null || detections.isEmpty()) return 0.0f;
+        return (float) detections.stream()
+                .mapToDouble(Detection::getConfidence)
+                .average()
+                .orElse(0.0);
+    }
     /**
      * 탐지 통계 계산
      */
