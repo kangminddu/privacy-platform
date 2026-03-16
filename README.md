@@ -3,7 +3,6 @@
 
 ---
 
-###  전남대학교 컴퓨터정보통신공학과  
 **팀원**
 - **강민수 (minddu)** — 백엔드 개발 (Spring Boot, AWS, DB, WebSocket)
 - **장인환 (janginh)** — AI 모델 개발 / 비식별화 (Grounding DINO, Stable Diffusion, Gemini API)
